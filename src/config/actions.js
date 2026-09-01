@@ -1,0 +1,10 @@
+export const ACTIONS = {
+  VIEW: "VIEW",
+  CREATE: "CREATE",
+  UPDATE: "UPDATE",
+  DELETE: "DELETE",
+  SUBMIT: "SUBMIT",
+  APPROVE: "APPROVE",
+  REJECT: "REJECT",
+  PRINT: "PRINT"
+};

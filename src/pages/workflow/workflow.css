@@ -1,0 +1,33 @@
+.workflow-screen { display: grid; gap: var(--space-5, 20px); }
+.workflow-heading { display:flex; justify-content:space-between; gap:20px; align-items:flex-start; flex-wrap:wrap; }
+.workflow-title-wrap { display:flex; gap:14px; align-items:flex-start; }
+.workflow-title-icon { width:48px; height:48px; display:grid; place-items:center; border:1px solid var(--border-color); border-radius:14px; color:var(--color-primary); background:var(--surface-muted); flex:0 0 auto; }
+.workflow-heading h1 { margin:0; font-size:clamp(1.45rem,2.3vw,2rem); }
+.workflow-heading p { margin:6px 0 0; color:var(--text-muted); max-width:760px; }
+.workflow-actions { display:flex; gap:10px; flex-wrap:wrap; }
+.workflow-stats { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; }
+.workflow-stat-card { padding:18px; }
+.workflow-stat-label { color:var(--text-muted); font-size:.9rem; }
+.workflow-stat-value { font-size:1.7rem; font-weight:800; margin:5px 0 8px; }
+.workflow-grid { display:grid; grid-template-columns:minmax(0,2fr) minmax(280px,1fr); gap:18px; }
+.workflow-list { display:grid; gap:10px; }
+.workflow-list-item { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px; border:1px solid var(--border-color); border-radius:12px; background:var(--surface); }
+.workflow-list-item strong { display:block; }
+.workflow-list-item span { color:var(--text-muted); font-size:.88rem; }
+.workflow-stepper { display:grid; gap:0; }
+.workflow-step { display:grid; grid-template-columns:32px 1fr; gap:12px; position:relative; padding-bottom:18px; }
+.workflow-step:not(:last-child)::after { content:""; position:absolute; inset-inline-start:15px; top:31px; bottom:0; width:1px; background:var(--border-color); }
+.workflow-step-dot { width:30px; height:30px; border-radius:50%; display:grid; place-items:center; border:1px solid var(--border-color); background:var(--surface); z-index:1; }
+.workflow-step.is-active .workflow-step-dot { background:var(--color-primary); color:#fff; border-color:var(--color-primary); }
+.workflow-step h3 { margin:2px 0 3px; font-size:1rem; }
+.workflow-step p { margin:0; color:var(--text-muted); font-size:.9rem; }
+.workflow-form { display:grid; gap:18px; }
+.workflow-form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+.workflow-form-actions { display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap; }
+.workflow-note { padding:14px 16px; border-inline-start:4px solid var(--color-primary); background:var(--surface-muted); border-radius:10px; }
+@media (max-width:900px){ .workflow-stats{grid-template-columns:repeat(2,minmax(0,1fr));}.workflow-grid{grid-template-columns:1fr;} }
+@media (max-width:600px){ .workflow-stats,.workflow-form-grid{grid-template-columns:1fr;} .workflow-heading{display:block}.workflow-actions{margin-top:14px}.workflow-actions .ui-button{width:100%;} }
+
+/* Phase E screen layer: one shared visual language for all workflow pages. */
+.workflow-screen .ui-card { min-width: 0; }
+.workflow-screen .ui-table-wrap { overflow-x: auto; }

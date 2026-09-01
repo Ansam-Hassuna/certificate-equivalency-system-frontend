@@ -1,0 +1,19 @@
+.payment-rule,
+.payment-confirmed-box,
+.payment-confirm-box {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--theme-border);
+  border-radius: var(--radius-lg);
+  background: var(--theme-surface-soft, var(--theme-surface));
+  margin-bottom: var(--space-5);
+}
+.payment-status-row { display:flex; align-items:center; gap:var(--space-3); margin-bottom:var(--space-5); }
+.payment-fee-box { display:grid; gap:var(--space-2); padding:var(--space-5); border-radius:var(--radius-lg); background:var(--theme-surface-muted, var(--theme-surface)); margin-bottom:var(--space-5); }
+.payment-fee-box strong { font-size:var(--font-size-2xl); }
+.payment-fee-box small { color:var(--theme-text-muted); }
+.payment-form { display:grid; gap:var(--space-4); }
+.payment-confirmed-box { flex-direction:column; align-items:flex-start; }
+.payment-source-note { color:var(--theme-text-muted); font-size:var(--font-size-sm); margin-top:var(--space-4); }

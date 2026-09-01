@@ -1,0 +1,18 @@
+export const SCREENS = Object.freeze({
+  DASHBOARD: "dashboard",
+  MY_APPLICATIONS: "my-applications",
+  NEW_APPLICATION: "applications-new",
+  APPLICATION_DETAILS: "application-details",
+  DOCUMENTS: "documents",
+  PAYMENTS: "payments",
+  RECEIVING: "receiving",
+  INQUIRIES: "inquiries",
+  COMMITTEES: "committees",
+  PRINTING: "printing",
+  DRAFT_REVIEW: "draft-review",
+  ARCHIVE: "archive",
+  DELIVERY: "delivery",
+  REPORTS: "reports",
+  USERS: "users",
+  ROLE_PROFILE: "role-profile",
+});

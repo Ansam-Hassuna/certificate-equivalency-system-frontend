@@ -1,0 +1,197 @@
+:root {
+  /* =========================================================
+     DESIGN TOKENS — CERTIFICATE EQUIVALENCY SYSTEM
+     Ministry-inspired palette. These are design values,
+     not an official government brand specification.
+  ========================================================= */
+
+  /* Brand / ministry-inspired palette */
+  --color-brand-blue-900: #005a2d;
+  --color-brand-blue-800: #006b35;
+  --color-brand-blue-700: #007a3d;
+  --color-brand-blue-100: #e8f6ef;
+
+  --color-brand-green-900: #005a2d;
+  --color-brand-green-800: #006b35;
+  --color-brand-green-700: #007a3d;
+  --color-brand-green-600: #0b8f50;
+  --color-brand-green-500: #159a5b;
+  --color-brand-green-100: #e8f6ef;
+
+  --color-brand-red-600: #ce1126;
+  --color-brand-red-100: #fdecef;
+
+  /* Primary system scale */
+  --color-primary-50: #edf8f2;
+  --color-primary-100: #d7f0e2;
+  --color-primary-200: #afe1c6;
+  --color-primary-300: #80cfa7;
+  --color-primary-400: #4fba83;
+  --color-primary-500: #007a3d;
+  --color-primary-600: #006b35;
+  --color-primary-700: #005a2d;
+  --color-primary-800: #004a25;
+  --color-primary-900: #003a1d;
+
+  /* Neutral scale */
+  --color-neutral-0: #ffffff;
+  --color-neutral-50: #f8fafb;
+  --color-neutral-100: #f1f4f6;
+  --color-neutral-200: #e5eaee;
+  --color-neutral-300: #d7dfe5;
+  --color-neutral-400: #b8c4cc;
+  --color-neutral-500: #8997a2;
+  --color-neutral-600: #687681;
+  --color-neutral-700: #4a5863;
+  --color-neutral-800: #303c45;
+  --color-neutral-900: #17212b;
+  --color-neutral-950: #0c1217;
+
+  /* Semantic */
+  --color-success-50: #eaf7ef;
+  --color-success-500: #16834f;
+  --color-success-700: #0d633b;
+
+  --color-warning-50: #fff7e6;
+  --color-warning-500: #c87900;
+  --color-warning-700: #925b00;
+
+  --color-error-50: #fdeeee;
+  --color-error-500: #c62828;
+  --color-error-700: #961d1d;
+
+  --color-info-50: #edf5fc;
+  --color-info-500: #2563a6;
+  --color-info-700: #1b4b7d;
+
+  /* Light defaults / semantic aliases */
+  --color-background: #f7f9fb;
+  --color-surface: #ffffff;
+  --color-surface-muted: #eef2f5;
+  --color-surface-elevated: #ffffff;
+
+  --color-text-primary: #17212b;
+  --color-text-secondary: #344454;
+  --color-text-muted: #667788;
+  --color-text-disabled: #9aa6af;
+  --color-text-inverse: #ffffff;
+
+  --color-border: #d9e1e7;
+  --color-border-light: #e7ecef;
+  --color-border-strong: #c5d0d8;
+  --color-border-focus: var(--color-primary-500);
+
+  /* Typography */
+  --font-family-sans: "Noto Sans Arabic", "Noto Sans", "Segoe UI", Tahoma, Arial, sans-serif;
+  --font-family-mono: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.875rem;
+  --font-size-4xl: 2.25rem;
+  --font-size-5xl: 3rem;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+
+  /* Spacing */
+  --space-0: 0;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-7: 1.75rem;
+  --space-8: 2rem;
+  --space-9: 2.25rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-14: 3.5rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --space-24: 6rem;
+
+  /* Radius */
+  --radius-none: 0;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 0.875rem;
+  --radius-xl: 1.125rem;
+  --radius-pill: 999px;
+  --radius-full: 50%;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(23, 33, 43, 0.06);
+  --shadow-md: 0 4px 12px rgba(23, 33, 43, 0.09);
+  --shadow-lg: 0 10px 30px rgba(23, 33, 43, 0.12);
+  --shadow-xl: 0 18px 48px rgba(23, 33, 43, 0.16);
+
+  /* Focus */
+  --focus-ring-width: 3px;
+  --focus-ring-offset: 2px;
+
+  /* Z-index */
+  --z-base: 0;
+  --z-dropdown: 1000;
+  --z-sticky: 1100;
+  --z-header: 1200;
+  --z-overlay: 1300;
+  --z-drawer: 1400;
+  --z-modal: 1500;
+  --z-toast: 1600;
+  --z-tooltip: 1700;
+
+  /* Motion */
+  --duration-fast: 150ms;
+  --duration-normal: 200ms;
+  --duration-slow: 300ms;
+  --easing-standard: ease;
+  --transition-fast: var(--duration-fast) var(--easing-standard);
+  --transition-normal: var(--duration-normal) var(--easing-standard);
+  --transition-slow: var(--duration-slow) var(--easing-standard);
+
+  /* Breakpoints */
+  --breakpoint-sm: 576px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 992px;
+  --breakpoint-xl: 1200px;
+  --breakpoint-2xl: 1400px;
+
+  /* Controls */
+  --control-height-sm: 36px;
+  --control-height-md: 42px;
+  --control-height-lg: 48px;
+  --control-touch-min: 44px;
+
+  /* Layout */
+  --container-sm: 540px;
+  --container-md: 720px;
+  --container-lg: 960px;
+  --container-xl: 1140px;
+  --container-2xl: 1320px;
+  --page-padding: clamp(1rem, 2.5vw, 2rem);
+  --header-height: 72px;
+  --footer-min-height: 160px;
+}
+
+/* Compatibility aliases used by layout components */
+:root {
+  --spacing-1: var(--space-1);
+  --spacing-2: var(--space-2);
+  --spacing-3: var(--space-3);
+  --spacing-4: var(--space-4);
+  --spacing-5: var(--space-5);
+  --spacing-6: var(--space-6);
+  --spacing-8: var(--space-8);
+}

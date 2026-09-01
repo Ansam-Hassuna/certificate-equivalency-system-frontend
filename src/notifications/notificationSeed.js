@@ -1,0 +1,167 @@
+﻿import { ROLES } from "../auth/roles";
+import { NOTIFICATION_TYPES } from "./notificationTypes";
+
+export const DEMO_NOTIFICATIONS = Object.freeze([
+  {
+    id: "demo-receiving-001",
+    roles: [ROLES.RECEIVING],
+    type: NOTIFICATION_TYPES.APPLICATION_SUBMITTED,
+    titleAr: "طلب جديد بانتظار الإجراء",
+    titleEn: "New application awaiting action",
+    messageAr: "يوجد طلب معادلة جديد يحتاج إلى متابعة من موظف الاستقبال.",
+    messageEn: "A new equivalency application requires receiving-office follow-up.",
+    path: "/applications",
+  },
+  {
+    id: "demo-receiving-002",
+    roles: [ROLES.RECEIVING],
+    type: NOTIFICATION_TYPES.PAYMENT_RECEIPT_RECORDED,
+    titleAr: "تم تسجيل إيصال الدفع",
+    titleEn: "Payment receipt recorded",
+    messageAr: "تم تسجيل إيصال دفع يدوي ويحتاج إلى التأكيد.",
+    messageEn: "A manual payment receipt was recorded and requires confirmation.",
+    path: "/receiving",
+  },
+  {
+    id: "demo-receiving-003",
+    roles: [ROLES.RECEIVING],
+    type: NOTIFICATION_TYPES.DOCUMENT_READY,
+    titleAr: "الوثائق جاهزة للاستلام",
+    titleEn: "Documents ready for receipt",
+    messageAr: "يمكن متابعة إجراء استلام الوثائق الورقية.",
+    messageEn: "Paper-document receipt can now proceed.",
+    path: "/receiving",
+  },
+
+  {
+    id: "demo-applicant-001",
+    roles: [ROLES.APPLICANT],
+    type: NOTIFICATION_TYPES.APPLICATION_SUBMITTED,
+    titleAr: "تم تحديث طلبك",
+    titleEn: "Your application was updated",
+    messageAr: "تم تحديث حالة طلب المعادلة الخاص بك.",
+    messageEn: "The status of your equivalency application has been updated.",
+    path: "/my-applications",
+  },
+  {
+    id: "demo-applicant-002",
+    roles: [ROLES.APPLICANT],
+    type: NOTIFICATION_TYPES.PAYMENT_CONFIRMED,
+    titleAr: "تم تأكيد الدفع",
+    titleEn: "Payment confirmed",
+    messageAr: "تم تأكيد دفع رسوم طلب المعادلة.",
+    messageEn: "Payment for your equivalency application has been confirmed.",
+    path: "/payments",
+  },
+  {
+    id: "demo-applicant-003",
+    roles: [ROLES.APPLICANT],
+    type: NOTIFICATION_TYPES.DECISION_ISSUED,
+    titleAr: "تم إصدار القرار",
+    titleEn: "Decision issued",
+    messageAr: "تم إصدار القرار ويمكنك متابعة الخدمات اللاحقة للقرار.",
+    messageEn: "A decision has been issued and post-decision services are available.",
+    path: "/post-decision",
+  },
+
+  {
+    id: "demo-equivalency-001",
+    roles: [ROLES.EQUIVALENCY],
+    type: NOTIFICATION_TYPES.APPLICATION_ROUTED,
+    titleAr: "طلب جديد للمراجعة",
+    titleEn: "New application for review",
+    messageAr: "تم تحويل طلب جديد إلى موظف المعادلات للمراجعة.",
+    messageEn: "A new application has been routed for equivalency review.",
+    path: "/applications",
+  },
+
+  {
+    id: "demo-committee-001",
+    roles: [ROLES.COMMITTEE_MEMBER],
+    type: NOTIFICATION_TYPES.COMMITTEE_ACTION_REQUIRED,
+    titleAr: "إجراء مطلوب من اللجنة",
+    titleEn: "Committee action required",
+    messageAr: "يوجد طلب بانتظار مراجعة اللجنة.",
+    messageEn: "An application is awaiting committee review.",
+    path: "/committees",
+  },
+
+  {
+    id: "demo-printing-001",
+    roles: [ROLES.PRINTING],
+    type: NOTIFICATION_TYPES.DECISION_ISSUED,
+    titleAr: "قرار جاهز للطباعة",
+    titleEn: "Decision ready for printing",
+    messageAr: "يوجد قرار معتمد يمكن متابعته ضمن إجراءات الطباعة.",
+    messageEn: "An approved decision is ready for the printing workflow.",
+    path: "/printing",
+  },
+
+  {
+    id: "demo-manager-001",
+    roles: [ROLES.MANAGER],
+    type: NOTIFICATION_TYPES.APPLICATION_ROUTED,
+    titleAr: "طلب يحتاج إلى متابعة",
+    titleEn: "Application requires follow-up",
+    messageAr: "يوجد طلب يحتاج إلى متابعة إدارية.",
+    messageEn: "An application requires managerial follow-up.",
+    path: "/applications",
+  },
+
+  {
+    id: "demo-inquiry-001",
+    roles: [ROLES.INQUIRY],
+    type: NOTIFICATION_TYPES.INQUIRY_RECEIVED,
+    titleAr: "استفسار جديد",
+    titleEn: "New inquiry",
+    messageAr: "ورد استفسار جديد يحتاج إلى المتابعة.",
+    messageEn: "A new inquiry requires follow-up.",
+    path: "/inquiries",
+  },
+
+  {
+    id: "demo-archive-001",
+    roles: [ROLES.ARCHIVE],
+    type: NOTIFICATION_TYPES.DOCUMENT_READY,
+    titleAr: "وثيقة جاهزة للأرشفة",
+    titleEn: "Document ready for archiving",
+    messageAr: "يوجد مستند جاهز لإجراء الأرشفة.",
+    messageEn: "A document is ready for archiving.",
+    path: "/archive",
+  },
+
+  {
+    id: "demo-coordinator-001",
+    roles: [ROLES.COMMITTEE_COORDINATOR],
+    type: NOTIFICATION_TYPES.COMMITTEE_ACTION_REQUIRED,
+    titleAr: "طلب يحتاج إلى تنسيق اللجنة",
+    titleEn: "Committee coordination required",
+    messageAr: "يوجد طلب يحتاج إلى إجراء منسق اللجنة.",
+    messageEn: "An application requires committee coordinator action.",
+    path: "/committees",
+  },
+
+  {
+    id: "demo-office-001",
+    roles: [ROLES.OFFICE],
+    type: NOTIFICATION_TYPES.DOCUMENT_READY,
+    titleAr: "إجراء مكتبي جديد",
+    titleEn: "New office action",
+    messageAr: "يوجد إجراء متاح ضمن خدمات المكتب.",
+    messageEn: "A new action is available in the office workflow.",
+    path: "/delivery",
+  },
+
+  {
+    id: "demo-admin-001",
+    roles: [ROLES.ADMIN],
+    type: NOTIFICATION_TYPES.APPLICATION_SUBMITTED,
+    titleAr: "نشاط جديد في النظام",
+    titleEn: "New system activity",
+    messageAr: "تم تسجيل نشاط جديد يحتاج إلى متابعة إدارية.",
+    messageEn: "New system activity requires administrative follow-up.",
+    path: "/dashboard",
+  },
+]);
+
+export default DEMO_NOTIFICATIONS;

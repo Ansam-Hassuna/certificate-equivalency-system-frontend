@@ -343,7 +343,7 @@ const certificateOptions = [
     countryOptions.find((item) => item.value === value)?.label || value || "—";
 
   const getSpecializationLabel = (value) =>
-    specializationOptions.find((item) => item.value === value)?.label || value || "—";
+    filteredSpecializationOptions.find((item) => item.value === value)?.label || value || "—";
   const update = (key) => (event) => {
     setSaved(false);
     setForm((current) => ({ ...current, [key]: event.target.value }));

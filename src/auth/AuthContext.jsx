@@ -170,10 +170,15 @@ function getRoleFromToken(token) {
   }
 }
 
-function normalizePermissions(
-  data,
-  role
-) {
+function normalizePermissions(data, role) {
+  // أولاً: إذا الفرونت عنده صلاحيات معرّفة لهذا الدور
+  // استخدمها
+  if (ROLE_PERMISSIONS[role]) {
+    return ROLE_PERMISSIONS[role];
+  }
+
+  // إذا ما كان الدور معروف عند الفرونت،
+  // جرب permissions القادمة من backend
   if (
     Array.isArray(data?.permissions) &&
     data.permissions.length > 0
@@ -195,12 +200,9 @@ function normalizePermissions(
     return data.claims;
   }
 
-  return (
-    ROLE_PERMISSIONS[role] || [
-      PERMISSIONS.AUTHENTICATED,
-    ]
-  );
+  return [PERMISSIONS.AUTHENTICATED];
 }
+
 function normalizeUser(payload) {
   if (!payload) return null;
 

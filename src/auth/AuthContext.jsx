@@ -351,6 +351,9 @@ export function AuthProvider({ children }) {
         setUser(authenticatedUser);
         saveSession(authenticatedUser);
 
+        console.log("Authenticated user:", authenticatedUser);
+        console.log("User role:", authenticatedUser.role);
+
         return {
           ok: true,
           user: authenticatedUser,

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from "react";
+﻿import React, { useEffect, useMemo, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Icon from "../ui/Icon";
 import { NAVIGATION } from "../../config/navigation";
@@ -38,13 +38,13 @@ const HamburgerMenu = ({ isOpen, onClose, user = null }) => {
 
   return (
     <>
-      <button className={isOpen ? "hamburger-overlay is-open" : "hamburger-overlay"} type="button" aria-label={t("common.close")} aria-hidden={!isOpen} tabIndex={isOpen ? 0 : -1} onClick={onClose} />
+      <button className={isOpen ? "hamburger-overlay is-open" : "hamburger-overlay"} type="button" aria-label={t("common.close")} tabIndex={isOpen ? 0 : -1} onClick={onClose} />
       <aside
         ref={drawerRef}
         id="main-navigation"
         className={isOpen ? "hamburger-drawer is-open" : "hamburger-drawer"}
         aria-hidden={!isOpen}
-        aria-label={isArabic ? "القائمة الرئيسية" : "Main navigation"}
+        aria-label={isArabic ? "Ø§Ù„Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ©" : "Main navigation"}
       >
         <div className="hamburger-header">
           <div className="hamburger-title-wrapper">
@@ -79,8 +79,8 @@ const HamburgerMenu = ({ isOpen, onClose, user = null }) => {
           <div className="hamburger-user">
             <span className="hamburger-user-avatar"><Icon name="user" size={19} /></span>
             <span className="hamburger-user-info">
-              <strong>{user.name || (isArabic ? "المستخدم" : "User")}</strong>
-              <span>{user.role ? (ROLE_LABELS[user.role]?.[isArabic ? "ar" : "en"] || user.role) : (isArabic ? "مستخدم النظام" : "System User")}</span>
+              <strong>{user.name || (isArabic ? "Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…" : "User")}</strong>
+              <span>{user.role ? (ROLE_LABELS[user.role]?.[isArabic ? "ar" : "en"] || user.role) : (isArabic ? "Ù…Ø³ØªØ®Ø¯Ù… Ø§Ù„Ù†Ø¸Ø§Ù…" : "System User")}</span>
             </span>
           </div>
         )}
@@ -90,3 +90,4 @@ const HamburgerMenu = ({ isOpen, onClose, user = null }) => {
 };
 
 export default HamburgerMenu;
+

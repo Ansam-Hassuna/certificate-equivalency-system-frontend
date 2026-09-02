@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+﻿import React, { useMemo, useState } from "react";
 import { useLanguage } from "../../context/LanguageContext";
 import { useAuth } from "../../auth/AuthContext";
 import { PERMISSIONS } from "../../auth/permissions";
@@ -39,10 +39,17 @@ function Content(){
   const [selected,setSelected]=useState(null);
   const [submitted,setSubmitted]=useState(false);
 
-  const services=useMemo(()=>{
-    if (isApplicant) return SERVICE_KEYS.filter(s=>s.permission===PERMISSIONS.APPEAL_CREATE_OWN);
-    return canManage ? SERVICE_KEYS.filter(s=>s.permission===PERMISSIONS.POST_DECISION_SERVICE_MANAGE) : [];
-  },[isApplicant, canManage]);
+  const services = useMemo(() => {
+    if (isApplicant) {
+      return SERVICE_KEYS.filter(
+        (s) =>
+          s.permission ===
+          PERMISSIONS.APPEAL_CREATE_OWN
+      );
+    }
+
+    return SERVICE_KEYS;
+  }, [isApplicant]);
   const visible=active==="all"?services:services.filter(s=>s.id===active);
 
   const submit=(e)=>{e.preventDefault();setSubmitted(true);};
@@ -67,7 +74,29 @@ function Content(){
         {visible.map(s=><div className="post-decision__service" key={s.id}>
           <div className="post-decision__service-head"><div className="post-decision__service-icon"><Icon name={s.icon} size={21}/></div><div><h3>{t(s.titleKey)}</h3><p>{t(s.descKey)}</p></div></div>
           <div className="post-decision__meta"><Badge variant="neutral">{t("postDecision.available")}</Badge><Badge variant="info">{t(`postDecision.status.${s.id}`)}</Badge></div>
-          <div className="post-decision__actions"><Button onClick={()=>{setSelected(s.id);setSubmitted(false);}} icon={<Icon name="arrowRight" size={17}/>}>{isApplicant?t("postDecision.start"):t("postDecision.manage")}</Button></div>
+          <div className="post-decision__actions">
+  {isApplicant ? (
+    <Button
+      onClick={() => {
+        setSelected(s.id);
+        setSubmitted(false);
+      }}
+      icon={<Icon name="arrowRight" size={17} />}
+    >
+      {t("postDecision.start")}
+    </Button>
+  ) : canManage ? (
+    <Button
+      onClick={() => {
+        setSelected(s.id);
+        setSubmitted(false);
+      }}
+      icon={<Icon name="arrowRight" size={17} />}
+    >
+      {t("postDecision.manage")}
+    </Button>
+  ) : null}
+</div>
         </div>)}
       </div>
 
@@ -94,3 +123,5 @@ function Content(){
 }
 
 export default function PostDecisionServices(){return <RequirePermission permission={PERMISSIONS.POST_DECISION_SERVICE_VIEW}><Content/></RequirePermission>}
+
+

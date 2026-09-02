@@ -1,4 +1,4 @@
-﻿import React from "react";
+﻿import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
 import { PERMISSIONS } from "../auth/permissions";
@@ -10,6 +10,7 @@ import Card from "../components/ui/Card";
 import Badge from "../components/ui/Badge";
 import { WORKFLOW_STAGES, WORKFLOW_STEPS } from "../config/workflow";
 import { REQUEST_ROWS, getLocalizedRequestRows } from "./workflow/data";
+import { getDeliveryState, isDeliveryCompleted } from "../features/delivery";
 import "./workflow/OperationalWorkflow.css";
 
 function Content() {
@@ -23,6 +24,7 @@ function Content() {
   const isApplicant = user?.role === "APPLICANT";
   const canReceive = can(PERMISSIONS.RECEIVE_PAPER);
   const canDeliver = can(PERMISSIONS.DELIVERY);
+  const [deliveryState, setDeliveryState] = useState(null);
 
   const localizedRequests = getLocalizedRequestRows(language);
 
@@ -30,7 +32,27 @@ function Content() {
     (row) => row.id === id
   );
 
-  const isOwnRequest =
+  
+  useEffect(() => {
+    let active = true;
+
+    getDeliveryState(id)
+      .then((state) => {
+        if (active) {
+          setDeliveryState(state);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setDeliveryState(null);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [id]);
+const isOwnRequest =
     Boolean(request) &&
     request.ownerUserId === user?.id;
 
@@ -75,9 +97,15 @@ function Content() {
     COMPLETED: WORKFLOW_STAGES.DELIVERY,
   };
 
+  const deliveryCompleted =
+    isDeliveryCompleted(deliveryState);
+
   const current =
-    currentStageByStatus[request.statusKey] ||
-    WORKFLOW_STAGES.SUBMITTED;
+    deliveryCompleted ||
+    deliveryState?.status === "READY"
+      ? WORKFLOW_STAGES.DELIVERY
+      : currentStageByStatus[request.statusKey] ||
+        WORKFLOW_STAGES.SUBMITTED;
 
   const labels = ar
     ? {
@@ -291,6 +319,9 @@ function Content() {
   );
 }
 export default function ApplicationDetails(){return <RequirePermission permissions={[PERMISSIONS.APPLICATION_VIEW_OWN,PERMISSIONS.VIEW_APPLICATIONS]} mode="any"><Content/></RequirePermission>;}
+
+
+
 
 
 

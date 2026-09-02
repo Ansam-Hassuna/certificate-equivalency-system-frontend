@@ -100,6 +100,8 @@ function Content() {
           "التصديق خدمة مرتبطة بالحركة الورقية وليست مدمجة مع قرار المعادلة.",
         payment:
           "تم تأكيد الدفع قبل تسليم الوثائق الورقية.",
+        receive: "فتح استلام الوثائق",
+        delivery: "فتح التسليم",
       }
     : {
         title: "Application Details",
@@ -122,6 +124,8 @@ function Content() {
           "Certification is handled as a separate movement around the paper-document stage and is not merged with the equivalency decision.",
         payment:
           "Payment has been confirmed before paper documents were delivered.",
+        receive: "Open paper receipt",
+        delivery: "Open delivery",
       };
 
   const activeIndex = WORKFLOW_STEPS.findIndex(
@@ -289,6 +293,7 @@ function Content() {
   );
 }
 export default function ApplicationDetails(){return <RequirePermission permissions={[PERMISSIONS.APPLICATION_VIEW_OWN,PERMISSIONS.VIEW_APPLICATIONS]} mode="any"><Content/></RequirePermission>;}
+
 
 
 

@@ -7,11 +7,21 @@
   useState,
 } from "react";
 
-import { ROLES } from "./roles";
+import {
+  ROLES,
+  ROLE_PERMISSIONS,
+} from "./roles";
+
+import { PERMISSIONS } from "./permissions";
 import { authApi } from "../api/mockAuthApi";
 
 class ApiError extends Error {
-  constructor(message, status, code = "API_ERROR", details = null) {
+  constructor(
+    message,
+    status,
+    code = "API_ERROR",
+    details = null
+  ) {
     super(message);
     this.name = "ApiError";
     this.status = status;
@@ -20,22 +30,26 @@ class ApiError extends Error {
   }
 }
 
-const AuthContext = createContext(null);
+const AuthContext =
+  createContext(null);
 
-const SESSION_KEY = "ce_auth_session";
-const PENDING_KEY = "ce_pending_registration";
+const SESSION_KEY =
+  "ce_auth_session";
 
-const isBrowser = typeof window !== "undefined";
+const PENDING_KEY =
+  "ce_pending_registration";
 
-/* -------------------------------------------------------
-   Storage helpers
-------------------------------------------------------- */
+const isBrowser =
+  typeof window !== "undefined";
 
 function readSession() {
   if (!isBrowser) return null;
 
   try {
-    const value = window.sessionStorage.getItem(SESSION_KEY);
+    const value =
+      window.sessionStorage.getItem(
+        SESSION_KEY
+      );
 
     if (!value) return null;
 
@@ -49,7 +63,9 @@ function saveSession(user) {
   if (!isBrowser) return;
 
   if (!user) {
-    window.sessionStorage.removeItem(SESSION_KEY);
+    window.sessionStorage.removeItem(
+      SESSION_KEY
+    );
     return;
   }
 
@@ -63,7 +79,9 @@ function savePendingRegistration(data) {
   if (!isBrowser) return;
 
   if (!data) {
-    window.sessionStorage.removeItem(PENDING_KEY);
+    window.sessionStorage.removeItem(
+      PENDING_KEY
+    );
     return;
   }
 
@@ -78,7 +96,9 @@ function readPendingRegistration() {
 
   try {
     const value =
-      window.sessionStorage.getItem(PENDING_KEY);
+      window.sessionStorage.getItem(
+        PENDING_KEY
+      );
 
     if (!value) return null;
 
@@ -94,27 +114,41 @@ function normalizeEmail(email) {
     .toLowerCase();
 }
 
-
-/* -------------------------------------------------------
-   JWT helpers
-------------------------------------------------------- */
-
 function getRoleFromToken(token) {
   if (!token) return null;
 
   try {
-    const parts = String(token).split(".");
+    const parts =
+      String(token).split(".");
 
     if (parts.length !== 3) {
       return null;
     }
 
+    const base64 =
+      parts[1]
+        .replace(/-/g, "+")
+        .replace(/_/g, "/");
+
+    const padded =
+      base64 +
+      "=".repeat(
+        (4 - (base64.length % 4)) % 4
+      );
+
     const payload = JSON.parse(
       decodeURIComponent(
-        atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"))
+        atob(padded)
           .split("")
-          .map((char) =>
-            "%" + ("00" + char.charCodeAt(0).toString(16)).slice(-2)
+          .map(
+            (character) =>
+              "%" +
+              (
+                "00" +
+                character
+                  .charCodeAt(0)
+                  .toString(16)
+              ).slice(-2)
           )
           .join("")
       )
@@ -140,173 +174,240 @@ function getRoleFromToken(token) {
   }
 }
 
+function normalizePermissions(
+  data,
+  role
+) {
+  if (
+    Array.isArray(data?.permissions) &&
+    data.permissions.length > 0
+  ) {
+    return data.permissions;
+  }
 
-/* -------------------------------------------------------
-   Normalize backend user
-------------------------------------------------------- */
+  if (
+    Array.isArray(data?.permissionNames) &&
+    data.permissionNames.length > 0
+  ) {
+    return data.permissionNames;
+  }
+
+  if (
+    Array.isArray(data?.claims) &&
+    data.claims.length > 0
+  ) {
+    return data.claims;
+  }
+
+  return (
+    ROLE_PERMISSIONS[role] || [
+      PERMISSIONS.AUTHENTICATED,
+    ]
+  );
+}
 
 function normalizeUser(payload) {
   if (!payload) return null;
 
-  /*
-   * The current API returns:
-   *
-   * {
-   *   id,
-   *   email,
-   *   displayName,
-   *   token,
-   *   imageUrl
-   * }
-   *
-   * The token is kept in memory/session because the
-   * current backend uses JWT authentication.
-   */
-
-  const data = payload.user || payload;
+  const data =
+    payload.user ||
+    payload.data ||
+    payload;
 
   if (!data) return null;
 
+  const token =
+    data.token ||
+    data.accessToken ||
+    data.jwt ||
+    payload.token ||
+    payload.accessToken ||
+    null;
+
+  const role =
+    data.role ||
+    data.roles?.[0] ||
+    getRoleFromToken(token) ||
+    ROLES.APPLICANT;
+
+  const permissions =
+    normalizePermissions(
+      data,
+      role
+    );
+
   return {
-    id: data.id,
-    email: data.email,
+    id:
+      data.id ||
+      data.userId ||
+      null,
+
+    email:
+      data.email ||
+      "",
+
     displayName:
       data.displayName ||
       data.name ||
       "",
+
     name:
       data.name ||
       data.displayName ||
       "",
-    role:
-      data.role ||
-      getRoleFromToken(data.token) ||
-      ROLES.APPLICANT,
-    imageUrl:
-      data.imageUrl || null,
-    token:
-      data.token || null,
 
-    /*
-     * These fields may not currently be returned
-     * by the backend. They remain optional.
-     */
+    role,
+
+    imageUrl:
+      data.imageUrl ||
+      data.avatarUrl ||
+      null,
+
+    token,
+
     emailVerified:
-      data.emailVerified !== undefined
-        ? data.emailVerified
+      data.emailVerified !==
+      undefined
+        ? Boolean(
+            data.emailVerified
+          )
         : true,
 
     active:
-      data.active !== undefined
-        ? data.active
+      data.active !==
+      undefined
+        ? Boolean(data.active)
         : true,
 
-    permissions:
-      Array.isArray(data.permissions)
-        ? data.permissions
-        : [],
+    permissions,
   };
 }
 
-
-/* -------------------------------------------------------
-   Error helper
-------------------------------------------------------- */
-
 function getAuthError(error) {
-  if (error instanceof ApiError || error?.code) {
+  if (
+    error instanceof ApiError ||
+    error?.code
+  ) {
     return {
       ok: false,
-      reason: error.code || "API_ERROR",
-      message: error.message,
-      status: error.status,
-      details: error.details,
+      reason:
+        error.code ||
+        "API_ERROR",
+      message:
+        error.message,
+      status:
+        error.status,
+      details:
+        error.details,
     };
   }
 
   return {
     ok: false,
-    reason: "NETWORK_ERROR",
+    reason:
+      "NETWORK_ERROR",
     message:
       error?.message ||
       "Unable to connect to the server.",
   };
 }
 
+export function AuthProvider({
+  children,
+}) {
+  const [user, setUser] =
+    useState(() => readSession());
 
-/* -------------------------------------------------------
-   Auth Provider
-------------------------------------------------------- */
+  const [loading, setLoading] =
+    useState(true);
 
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() =>
-    readSession()
-  );
+  const restoreSession =
+    useCallback(
+      async () => {
+        const storedUser =
+          readSession();
 
-  const [loading, setLoading] = useState(true);
+        try {
+          const payload =
+            await authApi.session();
 
+          const restoredUser =
+            normalizeUser(payload);
 
-  /* ---------------------------------------------------
-     Restore Session
-     --------------------------------------------------- */
+          if (restoredUser) {
+            setUser(restoredUser);
+            saveSession(
+              restoredUser
+            );
 
-  const restoreSession = useCallback(async () => {
-    const storedUser = readSession();
+            return restoredUser;
+          }
 
-    /*
-     * Frontend development mode: restore from the local
-     * mock authentication adapter. The production API
-     * adapter will replace this later without changing
-     * the authentication UI or RBAC layer.
-     */
-    try {
-      const payload = await authApi.session();
+          if (storedUser) {
+            const normalizedStoredUser =
+              normalizeUser(
+                storedUser
+              );
 
-      const restoredUser = normalizeUser(payload);
+            if (normalizedStoredUser) {
+              setUser(
+                normalizedStoredUser
+              );
 
-      if (restoredUser) {
-        setUser(restoredUser);
-        saveSession(restoredUser);
+              saveSession(
+                normalizedStoredUser
+              );
 
-        return restoredUser;
-      }
+              return normalizedStoredUser;
+            }
+          }
 
-      setUser(null);
-      saveSession(null);
+          setUser(null);
+          saveSession(null);
 
-      return null;
-    } catch {
-      /*
-       * If there is no valid refresh cookie, simply
-       * fall back to the existing local session.
-       *
-       * This does NOT authenticate a new user.
-       */
-      if (storedUser?.token) {
-        setUser(storedUser);
-        return storedUser;
-      }
+          return null;
+        } catch {
+          if (storedUser) {
+            const normalizedStoredUser =
+              normalizeUser(
+                storedUser
+              );
 
-      setUser(null);
-      saveSession(null);
+            if (normalizedStoredUser) {
+              setUser(
+                normalizedStoredUser
+              );
 
-      return null;
-    }
-  }, []);
+              saveSession(
+                normalizedStoredUser
+              );
 
+              return normalizedStoredUser;
+            }
+          }
+
+          setUser(null);
+          saveSession(null);
+
+          return null;
+        }
+      },
+      []
+    );
 
   useEffect(() => {
     let mounted = true;
 
-    const initialize = async () => {
-      try {
-        await restoreSession();
-      } finally {
-        if (mounted) {
-          setLoading(false);
+    const initialize =
+      async () => {
+        try {
+          await restoreSession();
+        } finally {
+          if (mounted) {
+            setLoading(false);
+          }
         }
-      }
-    };
+      };
 
     initialize();
 
@@ -315,287 +416,306 @@ export function AuthProvider({ children }) {
     };
   }, [restoreSession]);
 
+  const login =
+    useCallback(
+      async (
+        email,
+        password
+      ) => {
+        const normalizedEmail =
+          normalizeEmail(email);
 
-  /* ---------------------------------------------------
-     Login
-     --------------------------------------------------- */
-
-  const login = useCallback(
-    async (email, password) => {
-      const normalizedEmail =
-        normalizeEmail(email);
-
-      if (!normalizedEmail || !password) {
-        return {
-          ok: false,
-          reason: "INVALID_CREDENTIALS",
-        };
-      }
-
-      try {
-        const payload = await authApi.login(
-          normalizedEmail,
-          password
-        );
-
-        const authenticatedUser =
-          normalizeUser(payload);
-
-        if (!authenticatedUser) {
+        if (
+          !normalizedEmail ||
+          !password
+        ) {
           return {
             ok: false,
-            reason: "INVALID_SERVER_RESPONSE",
+            reason:
+              "INVALID_CREDENTIALS",
           };
         }
 
-        setUser(authenticatedUser);
-        saveSession(authenticatedUser);
+        try {
+          const payload =
+            await authApi.login(
+              normalizedEmail,
+              password
+            );
 
-        console.log("Authenticated user:", authenticatedUser);
-        console.log("User role:", authenticatedUser.role);
+          const authenticatedUser =
+            normalizeUser(payload);
+
+          if (!authenticatedUser) {
+            return {
+              ok: false,
+              reason:
+                "INVALID_SERVER_RESPONSE",
+            };
+          }
+
+          setUser(
+            authenticatedUser
+          );
+
+          saveSession(
+            authenticatedUser
+          );
+
+          console.log(
+            "Authenticated user:",
+            authenticatedUser
+          );
+
+          console.log(
+            "User role:",
+            authenticatedUser.role
+          );
+
+          console.log(
+            "User permissions:",
+            authenticatedUser.permissions
+          );
+
+          return {
+            ok: true,
+            user:
+              authenticatedUser,
+          };
+        } catch (error) {
+          return getAuthError(error);
+        }
+      },
+      []
+    );
+
+  const register =
+    useCallback(
+      async (data) => {
+        const registrationData =
+          {
+            displayName:
+              String(
+                data?.displayName ||
+                  data?.name ||
+                  ""
+              ).trim(),
+
+            email:
+              normalizeEmail(
+                data?.email
+              ),
+
+            password:
+              String(
+                data?.password ||
+                  ""
+              ),
+          };
+
+        if (
+          !registrationData.displayName ||
+          !registrationData.email ||
+          !registrationData.password
+        ) {
+          return {
+            ok: false,
+            reason:
+              "INVALID_REGISTRATION_DATA",
+          };
+        }
+
+        try {
+          const payload =
+            await authApi.register(
+              registrationData
+            );
+
+          const registeredUser =
+            normalizeUser(payload);
+
+          if (!registeredUser) {
+            return {
+              ok: false,
+              reason:
+                "INVALID_SERVER_RESPONSE",
+            };
+          }
+
+          setUser(
+            registeredUser
+          );
+
+          saveSession(
+            registeredUser
+          );
+
+          const pendingRegistration =
+            {
+              requestId:
+                registeredUser.id ||
+                `REQ-${Date.now()}`,
+
+              userId:
+                registeredUser.id ||
+                null,
+
+              name:
+                registeredUser.displayName ||
+                registrationData.displayName,
+
+              email:
+                registeredUser.email ||
+                registrationData.email,
+
+              role:
+                registeredUser.role ||
+                ROLES.APPLICANT,
+
+              emailVerified:
+                registeredUser.emailVerified !==
+                undefined
+                  ? registeredUser.emailVerified
+                  : true,
+            };
+
+          savePendingRegistration(
+            pendingRegistration
+          );
+
+          return {
+            ok: true,
+            user:
+              registeredUser,
+
+            requestId:
+              pendingRegistration.requestId,
+
+            userId:
+              pendingRegistration.userId,
+
+            email:
+              pendingRegistration.email,
+
+            role:
+              pendingRegistration.role,
+
+            emailVerified:
+              pendingRegistration.emailVerified,
+          };
+        } catch (error) {
+          return getAuthError(
+            error
+          );
+        }
+      },
+      []
+    );
+
+  const getPendingRegistration =
+    useCallback(
+      () =>
+        readPendingRegistration(),
+      []
+    );
+
+  const resendVerification =
+    useCallback(
+      async () => {
+        const pendingRegistration =
+          readPendingRegistration();
+
+        if (!pendingRegistration) {
+          return {
+            ok: false,
+            reason:
+              "NO_PENDING_REGISTRATION",
+          };
+        }
 
         return {
           ok: true,
-          user: authenticatedUser,
+          email:
+            pendingRegistration.email ||
+            null,
+
+          requestId:
+            pendingRegistration.requestId ||
+            null,
         };
-      } catch (error) {
-        return getAuthError(error);
-      }
-    },
-    []
-  );
+      },
+      []
+    );
 
+  const verifyEmail =
+    useCallback(
+      async (token) => {
+        const pendingRegistration =
+          readPendingRegistration();
 
-  /* ---------------------------------------------------
-     Register
-     --------------------------------------------------- */
-
-  const register = useCallback(
-    async (data) => {
-      const registrationData = {
-        displayName: String(
-          data?.displayName ||
-          data?.name ||
-          ""
-        ).trim(),
-
-        email: normalizeEmail(data?.email),
-
-        password: String(
-          data?.password || ""
-        ),
-      };
-
-      if (
-        !registrationData.displayName ||
-        !registrationData.email ||
-        !registrationData.password
-      ) {
-        return {
-          ok: false,
-          reason: "INVALID_REGISTRATION_DATA",
-        };
-      }
-
-      try {
-        const payload = await authApi.register(
-          registrationData
-        );
-
-        const registeredUser =
-          normalizeUser(payload);
-
-        if (!registeredUser) {
+        if (!pendingRegistration) {
           return {
             ok: false,
-            reason: "INVALID_SERVER_RESPONSE",
+            reason:
+              "NO_PENDING_REGISTRATION",
           };
         }
 
-        setUser(registeredUser);
-        saveSession(registeredUser);
-
-        const pendingRegistration = {
-          requestId:
-            registeredUser.id ||
-            `REQ-${Date.now()}`,
-
-          userId:
-            registeredUser.id || null,
-
-          name:
-            registeredUser.displayName ||
-            registrationData.displayName,
-
-          email:
-            registeredUser.email ||
-            registrationData.email,
-
-          role:
-            registeredUser.role ||
-            ROLES.APPLICANT,
-
-          emailVerified:
-            registeredUser.emailVerified !== undefined
-              ? registeredUser.emailVerified
-              : true,
-        };
+        const verifiedRegistration =
+          {
+            ...pendingRegistration,
+            emailVerified: true,
+          };
 
         savePendingRegistration(
-          pendingRegistration
+          verifiedRegistration
         );
+
+        const storedUser =
+          readSession();
+
+        if (storedUser) {
+          const verifiedUser =
+            {
+              ...storedUser,
+              emailVerified: true,
+            };
+
+          setUser(
+            verifiedUser
+          );
+
+          saveSession(
+            verifiedUser
+          );
+        }
 
         return {
           ok: true,
-          user: registeredUser,
-          requestId:
-            pendingRegistration.requestId,
-          userId:
-            pendingRegistration.userId,
-          email:
-            pendingRegistration.email,
-          role:
-            pendingRegistration.role,
-          emailVerified:
-            pendingRegistration.emailVerified,
+          user:
+            storedUser
+              ? {
+                  ...storedUser,
+                  emailVerified: true,
+                }
+              : null,
+
+          emailVerified: true,
+
+          token:
+            token || null,
         };
-      } catch (error) {
-        return getAuthError(error);
-      }
-    },
-    []
-  );
+      },
+      []
+    );
 
-
-  /* ---------------------------------------------------
-     Pending Registration
-     --------------------------------------------------- */
-
-  const getPendingRegistration = useCallback(() => {
-    return readPendingRegistration();
-  }, []);
-
-
-  /* ---------------------------------------------------
-     Resend Verification
-     --------------------------------------------------- */
-
-  const resendVerification = useCallback(async () => {
-    const pendingRegistration =
-      readPendingRegistration();
-
-    if (!pendingRegistration) {
-      return {
-        ok: false,
-        reason: "NO_PENDING_REGISTRATION",
-      };
-    }
-
-    /*
-     * Email verification is currently handled by the
-     * frontend flow. The backend does not provide a
-     * verification endpoint in the current API.
-     */
-    return {
-      ok: true,
-      email:
-        pendingRegistration.email || null,
-      requestId:
-        pendingRegistration.requestId || null,
-    };
-  }, []);
-
-
-  /* ---------------------------------------------------
-     Verify Email
-     --------------------------------------------------- */
-
-  const verifyEmail = useCallback(
-    async (token) => {
-      const pendingRegistration =
-        readPendingRegistration();
-
-      if (!pendingRegistration) {
-        return {
-          ok: false,
-          reason: "NO_PENDING_REGISTRATION",
-        };
-      }
-
-      /*
-       * The current backend does not expose an email
-       * verification endpoint.
-       *
-       * Keep the existing frontend verification flow
-       * for compatibility with the application UI.
-       */
-      const verifiedRegistration = {
-        ...pendingRegistration,
-        emailVerified: true,
-      };
-
+  const logout =
+    useCallback(() => {
+      saveSession(null);
       savePendingRegistration(
-        verifiedRegistration
+        null
       );
 
-      const storedUser =
-        readSession();
-
-      if (storedUser) {
-        const verifiedUser = {
-          ...storedUser,
-          emailVerified: true,
-        };
-
-        setUser(verifiedUser);
-        saveSession(verifiedUser);
-      }
-
-      return {
-        ok: true,
-        user:
-          storedUser
-            ? {
-                ...storedUser,
-                emailVerified: true,
-              }
-            : null,
-        emailVerified: true,
-        token: token || null,
-      };
-    },
-    []
-  );
-
-
-  /* ---------------------------------------------------
-     Logout
-     --------------------------------------------------- */
-
-  const logout = useCallback(() => {
-    saveSession(null);
-    savePendingRegistration(null);
-    setUser(null);
-
-    return {
-      ok: true,
-    };
-  }, []);
-
-  /* ---------------------------------------------------
-     Reset Authentication
-     --------------------------------------------------- */
-
-  const resetMockAuthentication =
-    useCallback(() => {
-      /*
-       * Kept for backwards compatibility with existing
-       * frontend components.
-       *
-       * It no longer resets a local user database.
-       */
-      saveSession(null);
-      savePendingRegistration(null);
       setUser(null);
 
       return {
@@ -603,30 +723,34 @@ export function AuthProvider({ children }) {
       };
     }, []);
 
+  const resetMockAuthentication =
+    useCallback(() => {
+      saveSession(null);
+      savePendingRegistration(
+        null
+      );
 
-  /* ---------------------------------------------------
-     Context Value
-     --------------------------------------------------- */
+      setUser(null);
+
+      return {
+        ok: true,
+      };
+    }, []);
 
   const value = useMemo(
     () => ({
       user,
-
       loading,
 
       isAuthenticated:
         Boolean(user),
 
       login,
-
       register,
-
       logout,
 
       getPendingRegistration,
-
       resendVerification,
-
       verifyEmail,
 
       resetMockAuthentication,
@@ -644,18 +768,14 @@ export function AuthProvider({ children }) {
     ]
   );
 
-
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider
+      value={value}
+    >
       {children}
     </AuthContext.Provider>
   );
 }
-
-
-/* -------------------------------------------------------
-   useAuth
-------------------------------------------------------- */
 
 export function useAuth() {
   const context =
@@ -671,14 +791,3 @@ export function useAuth() {
 }
 
 export default AuthContext;
-
-
-
-
-
-
-
-
-
-
-

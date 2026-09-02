@@ -232,9 +232,7 @@ function Content() {
                 type="button"
                 className="ui-button"
                 onClick={() => {
-                  navigate(
-                    `/delivery?applicationId=${encodeURIComponent(request.id)}`
-                  );
+                  navigate({ pathname: "/delivery", search: "?applicationId=" + encodeURIComponent(request.id) });
                 }}
               >
                 {labels.delivery}
@@ -293,6 +291,8 @@ function Content() {
   );
 }
 export default function ApplicationDetails(){return <RequirePermission permissions={[PERMISSIONS.APPLICATION_VIEW_OWN,PERMISSIONS.VIEW_APPLICATIONS]} mode="any"><Content/></RequirePermission>;}
+
+
 
 
 

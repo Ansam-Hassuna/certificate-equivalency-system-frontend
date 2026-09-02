@@ -7,11 +7,7 @@
   useState,
 } from "react";
 
-import {
-  ROLES,
-  ROLE_PERMISSIONS,
-} from "./roles";
-
+import { ROLES, ROLE_PERMISSIONS } from "./roles";
 import { PERMISSIONS } from "./permissions";
 import { authApi } from "../api/mockAuthApi";
 
@@ -205,7 +201,6 @@ function normalizePermissions(
     ]
   );
 }
-
 function normalizeUser(payload) {
   if (!payload) return null;
 
@@ -224,11 +219,16 @@ function normalizeUser(payload) {
     payload.accessToken ||
     null;
 
-  const role =
+  const rawRole =
     data.role ||
     data.roles?.[0] ||
     getRoleFromToken(token) ||
     ROLES.APPLICANT;
+
+  const role =
+    String(rawRole)
+      .trim()
+      .toUpperCase();
 
   const permissions =
     normalizePermissions(
@@ -266,16 +266,12 @@ function normalizeUser(payload) {
     token,
 
     emailVerified:
-      data.emailVerified !==
-      undefined
-        ? Boolean(
-            data.emailVerified
-          )
+      data.emailVerified !== undefined
+        ? Boolean(data.emailVerified)
         : true,
 
     active:
-      data.active !==
-      undefined
+      data.active !== undefined
         ? Boolean(data.active)
         : true,
 

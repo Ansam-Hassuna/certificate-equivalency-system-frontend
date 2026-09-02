@@ -1,5 +1,6 @@
 ﻿import React, { useEffect, useState } from "react";
 import { useLanguage } from "../context/LanguageContext";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { PERMISSIONS } from "../auth/permissions";
 import { hasPermission } from "../auth/accessControl";
@@ -25,6 +26,22 @@ function Content() {
   const { language } = useLanguage();
   const { user } = useAuth();
   const ar = language === "ar";
+  const [searchParams] = useSearchParams();
+  const applicationId = searchParams.get("applicationId");
+
+  if (!applicationId) {
+    return (
+      <ScreenShell
+        title={ar ? "لم يتم تحديد طلب" : "No application selected"}
+        description={
+          ar
+            ? "يجب فتح شاشة الاستلام من طلب محدد."
+            : "The receiving screen must be opened for a specific application."
+        }
+        icon="archive"
+      />
+    );
+  }
 
   const [payment, setPayment] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -50,7 +67,7 @@ function Content() {
 
     setLoading(true);
 
-    getPaymentState(null)
+    getPaymentState(applicationId)
       .then((data) => {
         if (!active) return;
 
@@ -76,7 +93,7 @@ function Content() {
     return () => {
       active = false;
     };
-  }, [ar]);
+  }, [ar, applicationId]);
 
   const confirmed = isPaymentConfirmed(payment);
 
@@ -108,7 +125,7 @@ function Content() {
     setMessage("");
 
     try {
-      const next = await recordPaymentReceipt(null, {
+      const next = await recordPaymentReceipt(applicationId, {
         method,
         receiptNumber,
         file: receiptFile,
@@ -156,7 +173,7 @@ function Content() {
     setMessage("");
 
     try {
-      const next = await confirmPayment(null);
+      const next = await confirmPayment(applicationId);
 
       setPayment(next);
 
@@ -429,3 +446,8 @@ export default function Receiving() {
     </RequirePermission>
   );
 }
+
+
+
+
+

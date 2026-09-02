@@ -1,8 +1,9 @@
 ﻿import React from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
 import { PERMISSIONS } from "../auth/permissions";
 import { RequirePermission } from "../auth/guards";
+import { useAuthorization } from "../auth/useAuthorization";
 import { useAuth } from "../auth/AuthContext";
 import ScreenShell from "./workflow/ScreenShell";
 import Card from "../components/ui/Card";
@@ -14,10 +15,14 @@ import "./workflow/OperationalWorkflow.css";
 function Content() {
   const { id } = useParams();
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const { can } = useAuthorization();
   const { language, t } = useLanguage();
 
   const ar = language === "ar";
   const isApplicant = user?.role === "APPLICANT";
+  const canReceive = can(PERMISSIONS.RECEIVE_PAPER);
+  const canDeliver = can(PERMISSIONS.DELIVERY);
 
   const localizedRequests = getLocalizedRequestRows(language);
 
@@ -196,6 +201,43 @@ function Content() {
 
         </div>
 
+        <Card>
+          <div
+            style={{
+              display: "flex",
+              gap: 12,
+              flexWrap: "wrap",
+            }}
+          >
+            {canReceive && (
+              <button
+                type="button"
+                className="ui-button"
+                onClick={() => {
+                  navigate(
+                    `/receiving?applicationId=${encodeURIComponent(request.id)}`
+                  );
+                }}
+              >
+                {labels.receive}
+              </button>
+            )}
+
+            {canDeliver && (
+              <button
+                type="button"
+                className="ui-button"
+                onClick={() => {
+                  navigate(
+                    `/delivery?applicationId=${encodeURIComponent(request.id)}`
+                  );
+                }}
+              >
+                {labels.delivery}
+              </button>
+            )}
+          </div>
+        </Card>
         <Card title={labels.timeline}>
           <div className="workflow-timeline">
             {WORKFLOW_STEPS.map((stage, index) => (
@@ -247,6 +289,14 @@ function Content() {
   );
 }
 export default function ApplicationDetails(){return <RequirePermission permissions={[PERMISSIONS.APPLICATION_VIEW_OWN,PERMISSIONS.VIEW_APPLICATIONS]} mode="any"><Content/></RequirePermission>;}
+
+
+
+
+
+
+
+
 
 
 

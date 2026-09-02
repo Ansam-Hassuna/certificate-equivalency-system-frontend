@@ -77,7 +77,8 @@ function Content() {
 }
 
 export default function Documents() {
-  return <RequirePermission permissions={[PERMISSIONS.DOCUMENT_UPLOAD_OWN, PERMISSIONS.REVIEW_PAPER]} mode="any"><Content /></RequirePermission>;
+  return <RequirePermission permission={PERMISSIONS.DOCUMENT_UPLOAD_OWN}><Content /></RequirePermission>;
 }
+
 
 

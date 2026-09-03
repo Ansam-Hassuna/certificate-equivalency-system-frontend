@@ -86,6 +86,21 @@ export const paymentApi = {
       getOrCreatePayment(applicationId);
 
     if (
+      payment.status ===
+      PAYMENT_STATUS.CONFIRMED
+    ) {
+      const error = new Error(
+        "Confirmed payment cannot be recorded again."
+      );
+
+      error.code =
+        "PAYMENT_ALREADY_CONFIRMED";
+      error.status = 409;
+
+      throw error;
+    }
+
+    if (
       !method ||
       !String(receiptNumber || "").trim()
     ) {
@@ -167,3 +182,4 @@ export {
 };
 
 export default paymentApi;
+

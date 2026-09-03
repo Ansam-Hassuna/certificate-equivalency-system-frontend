@@ -11,6 +11,7 @@ import Badge from "../components/ui/Badge";
 import { WORKFLOW_STAGES, WORKFLOW_STEPS } from "../config/workflow";
 import { REQUEST_ROWS, getLocalizedRequestRows } from "./workflow/data";
 import { getDeliveryState, isDeliveryCompleted } from "../features/delivery";
+import { getReceivingState, isReceivingCompleted } from "../features/receiving";
 import "./workflow/OperationalWorkflow.css";
 
 function Content() {
@@ -25,6 +26,7 @@ function Content() {
   const canReceive = can(PERMISSIONS.RECEIVE_PAPER);
   const canDeliver = can(PERMISSIONS.DELIVERY);
   const [deliveryState, setDeliveryState] = useState(null);
+  const [receivingState, setReceivingState] = useState(null);
 
   const localizedRequests = getLocalizedRequestRows(language);
 
@@ -52,7 +54,28 @@ function Content() {
       active = false;
     };
   }, [id]);
-const isOwnRequest =
+
+  useEffect(() => {
+    let active = true;
+
+    getReceivingState(id)
+      .then((state) => {
+        if (active) {
+          setReceivingState(state);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setReceivingState(null);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [id]);
+
+  const isOwnRequest =
     Boolean(request) &&
     request.ownerUserId === user?.id;
 
@@ -91,7 +114,7 @@ const isOwnRequest =
 
   const currentStageByStatus = {
     UNDER_REVIEW: WORKFLOW_STAGES.STUDY,
-    AWAITING_INQUIRY: WORKFLOW_STAGES.INQUIRY_WAITING,
+    AWAITING_INQUIRY: WORKFLOW_STAGES.CREDENTIAL_INQUIRY,
     COMMITTEE: WORKFLOW_STAGES.SPECIALIZED_COMMITTEE,
     DRAFT_REVIEW: WORKFLOW_STAGES.DRAFT,
     COMPLETED: WORKFLOW_STAGES.DELIVERY,
@@ -100,12 +123,31 @@ const isOwnRequest =
   const deliveryCompleted =
     isDeliveryCompleted(deliveryState);
 
-  const current =
-    deliveryCompleted ||
-    deliveryState?.status === "READY"
+  const receivingCompleted =
+    isReceivingCompleted(receivingState);
+
+  const baseCurrent =
+    deliveryCompleted
       ? WORKFLOW_STAGES.DELIVERY
       : currentStageByStatus[request.statusKey] ||
         WORKFLOW_STAGES.SUBMITTED;
+
+  const baseCurrentIndex =
+    WORKFLOW_STEPS.findIndex(
+      (step) => step.key === baseCurrent
+    );
+
+  const paperReceivingIndex =
+    WORKFLOW_STEPS.findIndex(
+      (step) => step.key === WORKFLOW_STAGES.PAPER_RECEIVING
+    );
+
+  const current =
+    receivingCompleted &&
+    baseCurrentIndex >= 0 &&
+    baseCurrentIndex <= paperReceivingIndex
+      ? WORKFLOW_STAGES.STUDY
+      : baseCurrent;
 
   const labels = ar
     ? {
@@ -319,6 +361,9 @@ const isOwnRequest =
   );
 }
 export default function ApplicationDetails(){return <RequirePermission permissions={[PERMISSIONS.APPLICATION_VIEW_OWN,PERMISSIONS.VIEW_APPLICATIONS]} mode="any"><Content/></RequirePermission>;}
+
+
+
 
 
 

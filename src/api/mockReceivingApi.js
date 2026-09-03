@@ -1,15 +1,9 @@
-﻿import { paymentApi } from "./mockPaymentApi";
-
-const DELIVERY_STATUS = Object.freeze({
-  READY: "READY",
-  DELIVERED: "DELIVERED",
+﻿const RECEIVING_STATUS = Object.freeze({
+  PENDING: "PENDING",
+  RECEIVED: "RECEIVED",
 });
 
-const PAYMENT_STATUS = Object.freeze({
-  CONFIRMED: "CONFIRMED",
-});
-
-const STORAGE_KEY = "ce_mock_delivery_state";
+const STORAGE_KEY = "ce_mock_receiving_state";
 
 const isBrowser =
   typeof window !== "undefined";
@@ -40,7 +34,7 @@ function saveStore(store) {
   );
 }
 
-function createDefaultDelivery(
+function createDefaultReceiving(
   applicationId
 ) {
   return {
@@ -48,10 +42,11 @@ function createDefaultDelivery(
       applicationId || null,
 
     status:
-      DELIVERY_STATUS.READY,
+      RECEIVING_STATUS.PENDING,
 
-    deliveredTo: "",
-    deliveredAt: null,
+    receivedBy: "",
+    receivedAt: null,
+    notes: "",
   };
 }
 
@@ -62,7 +57,7 @@ function getKey(applicationId) {
   );
 }
 
-function getOrCreateDelivery(
+function getOrCreateReceiving(
   applicationId
 ) {
   const store = readStore();
@@ -70,7 +65,7 @@ function getOrCreateDelivery(
 
   if (!store[key]) {
     store[key] =
-      createDefaultDelivery(
+      createDefaultReceiving(
         applicationId
       );
 
@@ -80,24 +75,24 @@ function getOrCreateDelivery(
   return store[key];
 }
 
-function updateDelivery(
+function updateReceiving(
   applicationId,
-  delivery
+  receiving
 ) {
   const store = readStore();
   const key = getKey(applicationId);
 
-  store[key] = delivery;
+  store[key] = receiving;
 
   saveStore(store);
 
-  return delivery;
+  return receiving;
 }
 
-export const deliveryApi = {
+export const receivingApi = {
   async get(applicationId) {
     return {
-      ...getOrCreateDelivery(
+      ...getOrCreateReceiving(
         applicationId
       ),
     };
@@ -105,45 +100,27 @@ export const deliveryApi = {
 
   async confirm(
     applicationId,
-    deliveredTo
-  ) {
-    const payment =
-      await paymentApi.get(
-        applicationId
-      );
-
-    if (
-      payment?.status !==
-      PAYMENT_STATUS.CONFIRMED
-    ) {
-      const error = new Error(
-        "Payment must be confirmed before document delivery."
-      );
-
-      error.code =
-        "PAYMENT_NOT_CONFIRMED";
-
-      error.status = 403;
-
-      throw error;
+    {
+      receivedBy,
+      notes = "",
     }
-
-    const delivery =
-      getOrCreateDelivery(
+  ) {
+    const receiving =
+      getOrCreateReceiving(
         applicationId
       );
 
     if (
       !String(
-        deliveredTo || ""
+        receivedBy || ""
       ).trim()
     ) {
       const error = new Error(
-        "Recipient name is required."
+        "Receiver name is required."
       );
 
       error.code =
-        "INVALID_DELIVERY_DATA";
+        "INVALID_RECEIVING_DATA";
 
       error.status = 400;
 
@@ -151,15 +128,15 @@ export const deliveryApi = {
     }
 
     if (
-      delivery.status ===
-      DELIVERY_STATUS.DELIVERED
+      receiving.status ===
+      RECEIVING_STATUS.RECEIVED
     ) {
       const error = new Error(
-        "This application has already been delivered."
+        "This application has already been received."
       );
 
       error.code =
-        "DELIVERY_ALREADY_COMPLETED";
+        "RECEIVING_ALREADY_COMPLETED";
 
       error.status = 409;
 
@@ -167,22 +144,27 @@ export const deliveryApi = {
     }
 
     const next = {
-      ...delivery,
+      ...receiving,
 
       status:
-        DELIVERY_STATUS.DELIVERED,
+        RECEIVING_STATUS.RECEIVED,
 
-      deliveredTo:
+      receivedBy:
         String(
-          deliveredTo
+          receivedBy
         ).trim(),
 
-      deliveredAt:
+      receivedAt:
         new Date().toISOString(),
+
+      notes:
+        String(
+          notes || ""
+        ).trim(),
     };
 
     return {
-      ...updateDelivery(
+      ...updateReceiving(
         applicationId,
         next
       ),
@@ -199,7 +181,7 @@ export const deliveryApi = {
 };
 
 export {
-  DELIVERY_STATUS,
+  RECEIVING_STATUS,
 };
 
-export default deliveryApi;
+export default receivingApi;

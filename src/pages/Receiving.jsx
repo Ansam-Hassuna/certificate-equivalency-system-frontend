@@ -21,6 +21,11 @@ import {
   PAYMENT_METHODS,
 } from "../features/payments";
 import "./Payments.css";
+import {
+  getReceivingState,
+  confirmReceiving,
+  isReceivingCompleted,
+} from "../features/receiving";
 
 function Content() {
   const { language } = useLanguage();
@@ -28,20 +33,6 @@ function Content() {
   const ar = language === "ar";
   const [searchParams] = useSearchParams();
   const applicationId = searchParams.get("applicationId");
-
-  if (!applicationId) {
-    return (
-      <ScreenShell
-        title={ar ? "لم يتم تحديد طلب" : "No application selected"}
-        description={
-          ar
-            ? "يجب فتح شاشة الاستلام من طلب محدد."
-            : "The receiving screen must be opened for a specific application."
-        }
-        icon="archive"
-      />
-    );
-  }
 
   const [payment, setPayment] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -51,6 +42,11 @@ function Content() {
   const [method, setMethod] = useState("");
   const [receiptNumber, setReceiptNumber] = useState("");
   const [receiptFile, setReceiptFile] = useState(null);
+
+  const [receiving, setReceiving] = useState(null);
+  const [receivedBy, setReceivedBy] = useState("");
+  const [receivingNotes, setReceivingNotes] = useState("");
+  const [receivingSaving, setReceivingSaving] = useState(false);
 
   const canRecordPayment = hasPermission(
     user,
@@ -64,6 +60,14 @@ function Content() {
 
   useEffect(() => {
     let active = true;
+
+    if (!applicationId) {
+      setPayment(null);
+      setLoading(false);
+      return () => {
+        active = false;
+      };
+    }
 
     setLoading(true);
 
@@ -95,7 +99,42 @@ function Content() {
     };
   }, [ar, applicationId]);
 
+  useEffect(() => {
+    let active = true;
+
+    if (!applicationId) {
+      setReceiving(null);
+      setReceivedBy("");
+      setReceivingNotes("");
+
+      return () => {
+        active = false;
+      };
+    }
+
+    getReceivingState(applicationId)
+      .then((data) => {
+        if (!active) return;
+
+        setReceiving(data);
+        setReceivedBy(data?.receivedBy || "");
+        setReceivingNotes(data?.notes || "");
+      })
+      .catch(() => {
+        if (active) {
+          setReceiving(null);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [applicationId]);
+
   const confirmed = isPaymentConfirmed(payment);
+
+  const receivingCompleted =
+    isReceivingCompleted(receiving);
 
   const receiptRecorded =
     payment?.status === PAYMENT_STATUS.RECEIPT_RECORDED;
@@ -194,6 +233,63 @@ function Content() {
     }
   };
 
+  const recordReceiving = async () => {
+    if (!confirmed) {
+      setMessage(
+        ar
+          ? "يجب تأكيد الدفع أولًا قبل تسجيل استلام الوثائق."
+          : "Payment must be confirmed before recording document receipt."
+      );
+      return;
+    }
+
+    if (!hasPermission(user, PERMISSIONS.RECEIVE_PAPER)) {
+      setMessage(
+        ar
+          ? "ليس لديك صلاحية تسجيل استلام الوثائق."
+          : "You are not authorized to record document receipt."
+      );
+      return;
+    }
+
+    if (!receivedBy.trim()) {
+      setMessage(
+        ar
+          ? "يرجى إدخال اسم مستلم الوثائق."
+          : "Enter the name of the person who received the documents."
+      );
+      return;
+    }
+
+    setReceivingSaving(true);
+    setMessage("");
+
+    try {
+      const next = await confirmReceiving(
+        applicationId,
+        receivedBy,
+        receivingNotes
+      );
+
+      setReceiving(next);
+
+      setMessage(
+        ar
+          ? "تم تسجيل استلام الوثائق الورقية بنجاح."
+          : "Paper-document receipt recorded successfully."
+      );
+    } catch (error) {
+      setMessage(
+        error?.message ||
+          (ar
+            ? "تعذر تسجيل استلام الوثائق."
+            : "Unable to record document receipt.")
+      );
+    } finally {
+      setReceivingSaving(false);
+    }
+  };
+
   const labels = ar
     ? {
         title: "استلام الوثائق الورقية",
@@ -233,6 +329,24 @@ function Content() {
           "لا تملك صلاحية تسجيل الدفع.",
         unauthorizedConfirm:
           "تم تسجيل الإيصال وبانتظار تأكيد الموظف المخول.",
+        receivingTitle:
+          "استلام الوثائق الورقية",
+        receivingAllowed:
+          "تم تأكيد الدفع ويمكن تسجيل استلام الوثائق الورقية.",
+        receivedStatus:
+          "تم الاستلام",
+        receiverName:
+          "اسم مستلم الوثائق",
+        receiverPlaceholder:
+          "أدخل اسم الشخص الذي استلم الوثائق",
+        receivingNotes:
+          "ملاحظات الاستلام",
+        receivingNotesPlaceholder:
+          "أدخل أي ملاحظات مرتبطة باستلام الوثائق...",
+        recordReceiving:
+          "تسجيل الاستلام",
+        recordingReceiving:
+          "جارٍ تسجيل الاستلام...",
       }
     : {
         title: "Paper Document Receipt",
@@ -273,7 +387,43 @@ function Content() {
           "You are not authorized to record payment.",
         unauthorizedConfirm:
           "The receipt is recorded and is awaiting confirmation by an authorized staff member.",
+        receivingTitle:
+          "Paper Document Receipt",
+        receivingAllowed:
+          "Payment is confirmed and paper-document receipt can now be recorded.",
+        receivedStatus:
+          "Received",
+        receiverName:
+          "Document receiver name",
+        receiverPlaceholder:
+          "Enter the name of the person who received the documents",
+        receivingNotes:
+          "Receiving notes",
+        receivingNotesPlaceholder:
+          "Enter any notes related to document receipt...",
+        recordReceiving:
+          "Record receipt",
+        recordingReceiving:
+          "Recording receipt...",
       };
+
+  if (!applicationId) {
+    return (
+      <ScreenShell
+        title={
+          ar
+            ? "لم يتم تحديد طلب"
+            : "No application selected"
+        }
+        description={
+          ar
+            ? "يجب فتح شاشة الاستلام من طلب محدد."
+            : "The receiving screen must be opened for a specific application."
+        }
+        icon="archive"
+      />
+    );
+  }
 
   return (
     <ScreenShell
@@ -424,6 +574,96 @@ function Content() {
           </div>
         )}
 
+        {confirmed && (
+          <div
+            className="payment-confirm-box"
+            style={{ marginTop: 16 }}
+          >
+            <h3 style={{ marginBottom: 8 }}>
+              {labels.receivingTitle}
+            </h3>
+
+            {receivingCompleted ? (
+              <>
+                <Badge tone="success">
+                  {labels.receivedStatus}
+                </Badge>
+
+                <div
+                  className="workflow-note"
+                  role="status"
+                  style={{ marginTop: 12 }}
+                >
+                  {ar
+                    ? `تم استلام الوثائق بواسطة ${receiving.receivedBy || "—"}.`
+                    : `Documents were received by ${receiving.receivedBy || "—"}.`}
+                </div>
+
+                {receiving.receivedAt && (
+                  <div className="workflow-note">
+                    {new Date(
+                      receiving.receivedAt
+                    ).toLocaleString()}
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <p>{labels.receivingAllowed}</p>
+
+                <div className="payment-form">
+                  <Input
+                    label={labels.receiverName}
+                    placeholder={
+                      labels.receiverPlaceholder
+                    }
+                    value={receivedBy}
+                    onChange={(event) =>
+                      setReceivedBy(
+                        event.target.value
+                      )
+                    }
+                    required
+                  />
+
+                  <Input
+                    label={labels.receivingNotes}
+                    placeholder={
+                      labels.receivingNotesPlaceholder
+                    }
+                    value={receivingNotes}
+                    onChange={(event) =>
+                      setReceivingNotes(
+                        event.target.value
+                      )
+                    }
+                  />
+
+                  <Button
+                    type="button"
+                    onClick={recordReceiving}
+                    disabled={
+                      receivingSaving ||
+                      saving ||
+                      loading
+                    }
+                    icon={
+                      <Icon
+                        name="check"
+                        size={17}
+                      />
+                    }
+                  >
+                    {receivingSaving
+                      ? labels.recordingReceiving
+                      : labels.recordReceiving}
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
         {message && (
           <div
             className="workflow-note"
@@ -446,6 +686,8 @@ export default function Receiving() {
     </RequirePermission>
   );
 }
+
+
 
 
 

@@ -1,9 +1,9 @@
 ﻿import { PERMISSIONS } from "../auth/permissions";
 import { ROLES, ROLE_PERMISSIONS } from "../auth/roles";
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
+const API_BASE_URL =
+  process.env.REACT_APP_API_BASE_URL;
 
-const REGISTERED_USERS_KEY = "ce_mock_registered_users";
 const SESSION_KEY = "ce_auth_session";
 
 const isBrowser =
@@ -15,35 +15,92 @@ function normalizeEmail(email) {
     .toLowerCase();
 }
 
-function readRegisteredUsers() {
-  if (!isBrowser) return [];
+function getPermissions(role) {
+  return (
+    ROLE_PERMISSIONS[role] || [
+      PERMISSIONS.AUTHENTICATED,
+    ]
+  );
+}
+
+function getStoredSession() {
+  if (!isBrowser) return null;
 
   try {
-    const value =
+    const stored =
       window.sessionStorage.getItem(
-        REGISTERED_USERS_KEY
+        SESSION_KEY
       );
 
-    return value ? JSON.parse(value) : [];
+    return stored
+      ? JSON.parse(stored)
+      : null;
   } catch {
-    return [];
+    return null;
   }
 }
 
-function saveRegisteredUsers(users) {
-  if (!isBrowser) return;
+function getStoredToken() {
+  const session =
+    getStoredSession();
 
-  window.sessionStorage.setItem(
-    REGISTERED_USERS_KEY,
-    JSON.stringify(users)
+  return (
+    session?.token ||
+    session?.accessToken ||
+    session?.user?.token ||
+    session?.user?.accessToken ||
+    null
   );
+}
+
+function getAuthHeaders() {
+  const token =
+    getStoredToken();
+
+  return {
+    Accept: "application/json",
+    ...(token
+      ? {
+          Authorization: `Bearer ${token}`,
+        }
+      : {}),
+  };
+}
+
+async function parseResponse(response) {
+  let data = null;
+
+  try {
+    data = await response.json();
+  } catch {
+    data = null;
+  }
+
+  if (!response.ok) {
+    const error = new Error(
+      data?.message ||
+        data?.error ||
+        data?.title ||
+        `Request failed with status ${response.status}.`
+    );
+
+    error.status =
+      response.status;
+
+    error.details = data;
+
+    throw error;
+  }
+
+  return data;
 }
 
 function getRoleFromToken(token) {
   if (!token) return null;
 
   try {
-    const parts = String(token).split(".");
+    const parts =
+      String(token).split(".");
 
     if (parts.length !== 3) {
       return null;
@@ -59,23 +116,24 @@ function getRoleFromToken(token) {
         (4 - (base64.length % 4)) % 4
       );
 
-    const payload = JSON.parse(
-      decodeURIComponent(
-        atob(padded)
-          .split("")
-          .map(
-            (character) =>
-              "%" +
-              (
-                "00" +
-                character
-                  .charCodeAt(0)
-                  .toString(16)
-              ).slice(-2)
-          )
-          .join("")
-      )
-    );
+    const payload =
+      JSON.parse(
+        decodeURIComponent(
+          atob(padded)
+            .split("")
+            .map(
+              (character) =>
+                "%" +
+                (
+                  "00" +
+                  character
+                    .charCodeAt(0)
+                    .toString(16)
+                ).slice(-2)
+            )
+            .join("")
+        )
+      );
 
     const role =
       payload[
@@ -97,7 +155,10 @@ function getRoleFromToken(token) {
   }
 }
 
-function normalizePermissions(data, role) {
+function normalizePermissions(
+  data,
+  role
+) {
   if (
     Array.isArray(data?.permissions) &&
     data.permissions.length > 0
@@ -119,11 +180,7 @@ function normalizePermissions(data, role) {
     return data.claims;
   }
 
-  return (
-    ROLE_PERMISSIONS[role] || [
-      PERMISSIONS.AUTHENTICATED,
-    ]
-  );
+  return getPermissions(role);
 }
 
 function normalizeApiUser(payload) {
@@ -146,37 +203,48 @@ function normalizeApiUser(payload) {
 
   const role =
     data.role ||
-    data.roles?.[0] ||
+    (Array.isArray(data.roles)
+      ? data.roles[0]
+      : data.roles) ||
     getRoleFromToken(token) ||
     ROLES.APPLICANT;
-
-  const permissions =
-    normalizePermissions(
-      data,
-      role
-    );
 
   return {
     id:
       data.id ||
       data.userId ||
+      data.Id ||
       null,
 
     email:
       data.email ||
+      data.Email ||
       "",
 
     displayName:
       data.displayName ||
+      data.DisplayName ||
       data.name ||
+      data.Name ||
+      data.email ||
+      data.Email ||
       "",
 
     name:
       data.name ||
+      data.Name ||
       data.displayName ||
+      data.DisplayName ||
       "",
 
     role,
+
+    roles:
+      Array.isArray(data.roles)
+        ? data.roles
+        : role
+          ? [role]
+          : [],
 
     imageUrl:
       data.imageUrl ||
@@ -184,65 +252,80 @@ function normalizeApiUser(payload) {
       null,
 
     emailVerified:
-      data.emailVerified !== undefined
-        ? Boolean(data.emailVerified)
+      data.emailVerified !==
+        undefined
+        ? Boolean(
+            data.emailVerified
+          )
         : true,
 
     active:
       data.active !== undefined
         ? Boolean(data.active)
-        : true,
+        : data.isActive !==
+            undefined
+          ? Boolean(
+              data.isActive
+            )
+          : true,
 
-    permissions,
+    permissions:
+      normalizePermissions(
+        data,
+        role
+      ),
 
     token,
   };
 }
 
-function normalizeLoginResponse(payload) {
+function normalizeLoginResponse(
+  payload
+) {
   const user =
     normalizeApiUser(payload);
 
   if (!user) return null;
 
-  if (
-    payload &&
-    payload.user &&
-    typeof payload.user === "object"
-  ) {
-    return {
-      ...payload,
-      user,
-    };
-  }
-
   return {
     ...payload,
-    ...user,
+    user,
+    ...(!payload.user
+      ? user
+      : {}),
   };
+}
+
+function normalizeUserList(payload) {
+  const users =
+    Array.isArray(payload)
+      ? payload
+      : Array.isArray(
+            payload?.users
+          )
+        ? payload.users
+        : Array.isArray(
+              payload?.data
+            )
+          ? payload.data
+          : [];
+
+  return users
+    .map((item) =>
+      normalizeApiUser(item)
+    )
+    .filter(Boolean);
 }
 
 export const authApi = {
   async session() {
-    if (!isBrowser) {
-      return null;
-    }
-
-    try {
-      const stored =
-        window.sessionStorage.getItem(
-          SESSION_KEY
-        );
-
-      return stored
-        ? JSON.parse(stored)
-        : null;
-    } catch {
-      return null;
-    }
+    return getStoredSession();
   },
 
-  async login(email, password) {
+  async login(
+    email,
+    password
+  ) {
     if (!API_BASE_URL) {
       const error = new Error(
         "API base URL is not configured."
@@ -250,6 +333,7 @@ export const authApi = {
 
       error.code =
         "API_BASE_URL_MISSING";
+
       error.status = 500;
 
       throw error;
@@ -268,6 +352,7 @@ export const authApi = {
 
       error.code =
         "INVALID_CREDENTIALS";
+
       error.status = 400;
 
       throw error;
@@ -280,13 +365,21 @@ export const authApi = {
         `${API_BASE_URL}/api/Account/login`,
         {
           method: "POST",
+
           headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
+            "Content-Type":
+              "application/json",
+
+            Accept:
+              "application/json",
           },
+
           body: JSON.stringify({
-            email: normalizedEmail,
-            password: String(password),
+            email:
+              normalizedEmail,
+
+            password:
+              String(password),
           }),
         }
       );
@@ -296,42 +389,26 @@ export const authApi = {
           "Unable to connect to the authentication server."
       );
 
-      error.code = "NETWORK_ERROR";
+      error.code =
+        "NETWORK_ERROR";
+
       error.status = 0;
-      error.details = networkError;
+
+      error.details =
+        networkError;
 
       throw error;
     }
 
-    let data = null;
-
-    try {
-      data = await response.json();
-    } catch {
-      data = null;
-    }
-
-    if (!response.ok) {
-      const error = new Error(
-        data?.message ||
-          data?.error ||
-          "Invalid email or password."
+    const data =
+      await parseResponse(
+        response
       );
 
-      error.code =
-        data?.code ||
-        "INVALID_CREDENTIALS";
-
-      error.status =
-        response.status;
-
-      error.details = data;
-
-      throw error;
-    }
-
     const normalizedResponse =
-      normalizeLoginResponse(data);
+      normalizeLoginResponse(
+        data
+      );
 
     if (!normalizedResponse) {
       const error = new Error(
@@ -342,6 +419,7 @@ export const authApi = {
         "INVALID_SERVER_RESPONSE";
 
       error.status = 502;
+
       error.details = data;
 
       throw error;
@@ -358,6 +436,7 @@ export const authApi = {
 
       error.code =
         "API_BASE_URL_MISSING";
+
       error.status = 500;
 
       throw error;
@@ -375,8 +454,7 @@ export const authApi = {
 
     const password =
       String(
-        data?.password ||
-          ""
+        data?.password || ""
       );
 
     if (
@@ -403,12 +481,15 @@ export const authApi = {
         `${API_BASE_URL}/api/Account/register`,
         {
           method: "POST",
+
           headers: {
             "Content-Type":
               "application/json",
+
             Accept:
               "application/json",
           },
+
           body: JSON.stringify({
             displayName,
             email,
@@ -433,36 +514,163 @@ export const authApi = {
       throw error;
     }
 
-    let responseData = null;
+    return parseResponse(
+      response
+    );
+  },
 
-    try {
-      responseData =
-        await response.json();
-    } catch {
-      responseData = null;
-    }
-
-    if (!response.ok) {
+  async listUsers() {
+    if (!API_BASE_URL) {
       const error = new Error(
-        responseData?.message ||
-          responseData?.error ||
-          "Registration failed."
+        "API base URL is not configured."
       );
 
       error.code =
-        responseData?.code ||
-        "REGISTER_FAILED";
+        "API_BASE_URL_MISSING";
 
-      error.status =
-        response.status;
-
-      error.details =
-        responseData;
+      error.status = 500;
 
       throw error;
     }
 
-    return responseData;
+    let response;
+
+    try {
+      response = await fetch(
+        `${API_BASE_URL}/api/Admin/users-with-roles`,
+        {
+          method: "GET",
+
+          headers:
+            getAuthHeaders(),
+        }
+      );
+    } catch (networkError) {
+      const error = new Error(
+        networkError?.message ||
+          "Unable to connect to the server."
+      );
+
+      error.code =
+        "NETWORK_ERROR";
+
+      error.status = 0;
+
+      error.details =
+        networkError;
+
+      throw error;
+    }
+
+    const data =
+      await parseResponse(
+        response
+      );
+
+    return normalizeUserList(
+      data
+    );
+  },
+
+  async updateUserRole(
+    userId,
+    role
+  ) {
+    if (!API_BASE_URL) {
+      const error = new Error(
+        "API base URL is not configured."
+      );
+
+      error.code =
+        "API_BASE_URL_MISSING";
+
+      error.status = 500;
+
+      throw error;
+    }
+
+    if (!userId) {
+      const error = new Error(
+        "User ID is required."
+      );
+
+      error.code =
+        "USER_ID_REQUIRED";
+
+      error.status = 400;
+
+      throw error;
+    }
+
+    if (
+      !Object.values(
+        ROLES
+      ).includes(role)
+    ) {
+      const error = new Error(
+        "Invalid role."
+      );
+
+      error.code =
+        "INVALID_ROLE";
+
+      error.status = 400;
+
+      throw error;
+    }
+
+    let response;
+
+    try {
+      response = await fetch(
+        `${API_BASE_URL}/api/Admin/edit-roles/${encodeURIComponent(
+          userId
+        )}?roles=${encodeURIComponent(
+          role
+        )}`,
+        {
+          method: "POST",
+
+          headers:
+            getAuthHeaders(),
+        }
+      );
+    } catch (networkError) {
+      const error = new Error(
+        networkError?.message ||
+          "Unable to connect to the server."
+      );
+
+      error.code =
+        "NETWORK_ERROR";
+
+      error.status = 0;
+
+      error.details =
+        networkError;
+
+      throw error;
+    }
+
+    return parseResponse(
+      response
+    );
+  },
+
+  async setUserActive(
+    userId,
+    active
+  ) {
+    const error = new Error(
+      "Changing user account status is not supported by the current backend API."
+    );
+
+    error.code =
+      "USER_STATUS_API_NOT_IMPLEMENTED";
+
+    error.status = 501;
+
+    throw error;
   },
 
   async refresh() {
@@ -475,10 +683,6 @@ export function clearMockAuthData() {
 
   window.sessionStorage.removeItem(
     SESSION_KEY
-  );
-
-  window.sessionStorage.removeItem(
-    REGISTERED_USERS_KEY
   );
 }
 

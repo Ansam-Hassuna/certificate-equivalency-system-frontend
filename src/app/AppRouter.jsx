@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import Login from "../pages/Login";
 import EquivalencyIntro from "../pages/EquivalencyIntro";
@@ -6,6 +6,7 @@ import Register from "../pages/Register";
 import VerifyEmail from "../pages/VerifyEmail";
 import EmailVerified from "../pages/EmailVerified";
 import Roles from "../pages/Roles";
+import Profile from "../pages/Profile";
 import Dashboard from "../pages/Dashboard";
 import Forbidden from "../pages/Forbidden";
 import NotFound from "../pages/NotFound";
@@ -60,6 +61,7 @@ function ProtectedLayout() {
         <Route path="/reports" element={<RequirePermission permission={PERMISSIONS.REPORTS_VIEW}><Reports /></RequirePermission>} />
         <Route path="/users" element={<RequirePermission permission={PERMISSIONS.MANAGE_USERS}><Users /></RequirePermission>} />
         <Route path="/post-decision" element={<RequirePermission permission={PERMISSIONS.POST_DECISION_SERVICE_VIEW}><PostDecisionServices /></RequirePermission>} />
+        <Route path="/profile" element={<RequirePermission permission={PERMISSIONS.AUTHENTICATED}><Profile /></RequirePermission>} />
         <Route path="/roles" element={<RequirePermission permission={PERMISSIONS.VIEW_ROLE_PROFILE}><Roles /></RequirePermission>} />
         <Route path="/settings" element={<Settings />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
@@ -87,3 +89,4 @@ export default function AppRouter() {
     </Routes>
   );
 }
+

@@ -124,7 +124,16 @@ const Header = ({ user = null, onLogout, menuOpen = false, onMenuToggle }) => {
 
           <div className="header-profile" ref={profileRef}>
             <button type="button" className="profile-button" onClick={() => setProfileOpen((open) => !open)} aria-expanded={profileOpen} aria-haspopup="menu" aria-label={t("header.profile")}>
-              <span className="profile-avatar"><Icon name="user" size={18} /></span>
+              <span className="profile-avatar">
+                {user?.imageUrl ? (
+                  <img
+                    src={user.imageUrl}
+                    alt=""
+                  />
+                ) : (
+                  <Icon name="user" size={18} />
+                )}
+              </span>
               <span className="profile-copy">
                 <strong>{user?.name || (isArabic ? "المستخدم" : "User")}</strong>
                 <small>{user?.role ? (ROLE_LABELS[user.role]?.[language] || user.role) : (isArabic ? "مستخدم النظام" : "System User")}</small>
@@ -134,6 +143,19 @@ const Header = ({ user = null, onLogout, menuOpen = false, onMenuToggle }) => {
 
             {profileOpen && (
               <div className="profile-menu" role="menu">
+                <button
+                  type="button"
+                  className="profile-menu-item"
+                  role="menuitem"
+                  onClick={() => {
+                    setProfileOpen(false);
+                    navigate("/profile");
+                  }}
+                >
+                  <Icon name="user" size={18} />
+                  <span>{isArabic ? "الملف الشخصي" : "Profile"}</span>
+                </button>
+
                 <button type="button" className="profile-menu-item" role="menuitem" onClick={() => { setProfileOpen(false); navigate("/roles"); }}>
                   <Icon name="user" size={18} /><span>{t("navigation.roleProfile")}</span>
                 </button>
@@ -154,5 +176,8 @@ const Header = ({ user = null, onLogout, menuOpen = false, onMenuToggle }) => {
 };
 
 export default Header;
+
+
+
 
 

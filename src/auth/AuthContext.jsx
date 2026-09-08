@@ -26,14 +26,10 @@ class ApiError extends Error {
   }
 }
 
-const AuthContext =
-  createContext(null);
+const AuthContext = createContext(null);
 
-const SESSION_KEY =
-  "ce_auth_session";
-
-const PENDING_KEY =
-  "ce_pending_registration";
+const SESSION_KEY = "ce_auth_session";
+const PENDING_KEY = "ce_pending_registration";
 
 const isBrowser =
   typeof window !== "undefined";
@@ -171,14 +167,10 @@ function getRoleFromToken(token) {
 }
 
 function normalizePermissions(data, role) {
-  // أولاً: إذا الفرونت عنده صلاحيات معرّفة لهذا الدور
-  // استخدمها
   if (ROLE_PERMISSIONS[role]) {
     return ROLE_PERMISSIONS[role];
   }
 
-  // إذا ما كان الدور معروف عند الفرونت،
-  // جرب permissions القادمة من backend
   if (
     Array.isArray(data?.permissions) &&
     data.permissions.length > 0
@@ -227,10 +219,15 @@ function normalizeUser(payload) {
     getRoleFromToken(token) ||
     ROLES.APPLICANT;
 
-  const role =
-    String(rawRole)
-      .trim()
-      .toUpperCase();
+  let role = String(rawRole)
+    .trim()
+    .toUpperCase();
+
+  // Backend currently uses "Member".
+  // Frontend maps that role to the applicant role.
+  if (role === "MEMBER") {
+    role = ROLES.APPLICANT;
+  }
 
   const permissions =
     normalizePermissions(
@@ -302,8 +299,7 @@ function getAuthError(error) {
 
   return {
     ok: false,
-    reason:
-      "NETWORK_ERROR",
+    reason: "NETWORK_ERROR",
     message:
       error?.message ||
       "Unable to connect to the server.",
@@ -334,6 +330,7 @@ export function AuthProvider({
 
           if (restoredUser) {
             setUser(restoredUser);
+
             saveSession(
               restoredUser
             );
@@ -495,8 +492,8 @@ export function AuthProvider({
             displayName:
               String(
                 data?.displayName ||
-                  data?.name ||
-                  ""
+                data?.name ||
+                ""
               ).trim(),
 
             email:
@@ -507,7 +504,7 @@ export function AuthProvider({
             password:
               String(
                 data?.password ||
-                  ""
+                ""
               ),
           };
 
@@ -602,9 +599,7 @@ export function AuthProvider({
               pendingRegistration.emailVerified,
           };
         } catch (error) {
-          return getAuthError(
-            error
-          );
+          return getAuthError(error);
         }
       },
       []
@@ -707,9 +702,37 @@ export function AuthProvider({
       []
     );
 
+  const updateUserProfile =
+    useCallback(
+      (patch = {}) => {
+        if (!user) {
+          return {
+            ok: false,
+            reason:
+              "NOT_AUTHENTICATED",
+          };
+        }
+
+        const nextUser = {
+          ...user,
+          ...patch,
+        };
+
+        setUser(nextUser);
+        saveSession(nextUser);
+
+        return {
+          ok: true,
+          user: nextUser,
+        };
+      },
+      [user]
+    );
+
   const logout =
     useCallback(() => {
       saveSession(null);
+
       savePendingRegistration(
         null
       );
@@ -724,6 +747,7 @@ export function AuthProvider({
   const resetMockAuthentication =
     useCallback(() => {
       saveSession(null);
+
       savePendingRegistration(
         null
       );
@@ -751,6 +775,7 @@ export function AuthProvider({
       resendVerification,
       verifyEmail,
 
+      updateUserProfile,
       resetMockAuthentication,
     }),
     [
@@ -762,6 +787,7 @@ export function AuthProvider({
       getPendingRegistration,
       resendVerification,
       verifyEmail,
+      updateUserProfile,
       resetMockAuthentication,
     ]
   );

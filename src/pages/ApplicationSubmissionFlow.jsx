@@ -13,6 +13,7 @@ import Icon from "../components/ui/Icon";
 import DocumentRequirementsList from "../components/documents/DocumentRequirementsList";
 import { createMockApplication } from "../features/applications/mockApplicationStore";
 import { setWorkflowStage } from "../features/workflow/workflowStore";
+import { getApplicantProfile } from "../features/profile/profileStore";
 import { QUALIFICATION_TYPES, getRequirementsForRequest, validateDocuments } from "../data/documentRequirements";
 import "./ApplicationSubmissionFlow.css";
 
@@ -98,21 +99,98 @@ export default function ApplicationSubmissionFlow() {
   }, []);
 
   useEffect(() => {
-    if (!user) {
+    if (!user?.id) {
       return;
     }
 
+    const profile =
+      getApplicantProfile(user.id) || {};
+
     setForm((current) => ({
       ...current,
+
       fullName:
         current.fullName ||
+        profile.fullName ||
         user.name ||
         user.displayName ||
         "",
+
+      nationalId:
+        current.nationalId ||
+        profile.nationalId ||
+        "",
+
+      identityType:
+        current.identityType ||
+        profile.identityType ||
+        "",
+
+      gender:
+        current.gender ||
+        profile.gender ||
+        "",
+
+      dateOfBirth:
+        current.dateOfBirth ||
+        profile.dateOfBirth ||
+        "",
+
+      nationality:
+        current.nationality ||
+        profile.nationality ||
+        "",
+
+      phone:
+        current.phone ||
+        profile.phone ||
+        "",
+
+      whatsappPrefix:
+        current.whatsappPrefix ||
+        profile.whatsappPrefix ||
+        "",
+
+      whatsapp:
+        current.whatsapp ||
+        profile.whatsapp ||
+        "",
+
       email:
         current.email ||
+        profile.email ||
         user.email ||
         "",
+
+      backupEmail:
+        current.backupEmail ||
+        profile.backupEmail ||
+        "",
+
+      residenceCountry:
+        current.residenceCountry ||
+        profile.country ||
+        "palestine",
+
+      city:
+        current.city ||
+        profile.city ||
+        "",
+
+      address:
+        current.address ||
+        profile.address ||
+        "",
+
+      residence:
+        current.residence ||
+        [
+          profile.country,
+          profile.city,
+          profile.address,
+        ]
+          .filter(Boolean)
+          .join(" - "),
     }));
   }, [user]);
 
@@ -455,7 +533,24 @@ const certificateOptions = [
 
   const validateStep = () => {
     if (step === 0) return Boolean(form.requestType && form.qualificationType);
-    if (step === 1) return Boolean(form.fullName && form.nationalId && form.phone && form.email && form.residence);
+    if (step === 1) {
+      return Boolean(
+        form.fullName &&
+        form.nationalId &&
+        form.identityType &&
+        form.gender &&
+        form.dateOfBirth &&
+        form.nationality &&
+        form.email &&
+        form.backupEmail &&
+        form.phone &&
+        form.whatsappPrefix &&
+        form.whatsapp &&
+        form.residenceCountry &&
+        form.city &&
+        form.address
+      );
+    }
     if (step === 2) {
       const baseValid = Boolean(
         form.certificateName &&
@@ -980,6 +1075,10 @@ options={filteredSpecializationOptions}
     </div>
   );
 }
+
+
+
+
 
 
 

@@ -1,5 +1,6 @@
-﻿import React, { useMemo, useRef, useState } from "react";
+﻿import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../auth/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import Card from "../components/ui/Card";
 import Input from "../components/ui/Input";
@@ -10,6 +11,8 @@ import Button from "../components/ui/Button";
 import Badge from "../components/ui/Badge";
 import Icon from "../components/ui/Icon";
 import DocumentRequirementsList from "../components/documents/DocumentRequirementsList";
+import { createMockApplication } from "../features/applications/mockApplicationStore";
+import { setWorkflowStage } from "../features/workflow/workflowStore";
 import { QUALIFICATION_TYPES, getRequirementsForRequest, validateDocuments } from "../data/documentRequirements";
 import "./ApplicationSubmissionFlow.css";
 
@@ -35,6 +38,7 @@ const STEPS = ["request", "applicant", "certificate", "documents", "draft", "sub
 
 export default function ApplicationSubmissionFlow() {
   const { t, language } = useLanguage();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [form, setForm] = useState(initialForm);
@@ -53,6 +57,65 @@ export default function ApplicationSubmissionFlow() {
     () => validateDocuments({ requirements, uploadedDocuments }),
     [requirements, uploadedDocuments]
   );
+  useEffect(() => {
+    const savedDraft = sessionStorage.getItem(STORAGE_KEY);
+
+    if (!savedDraft) {
+      return;
+    }
+
+    try {
+      const payload = JSON.parse(savedDraft);
+
+      if (payload?.status !== "draft" || !payload?.form) {
+        return;
+      }
+
+      setForm({
+        ...initialForm,
+        ...payload.form,
+      });
+
+      setUploadedDocuments(
+        Array.isArray(payload.uploadedDocuments)
+          ? payload.uploadedDocuments
+          : []
+      );
+
+      if (Number.isInteger(payload.step)) {
+        setStep(
+          Math.min(
+            Math.max(payload.step, 0),
+            STEPS.length - 1
+          )
+        );
+      }
+
+      setSaved(true);
+    } catch {
+      sessionStorage.removeItem(STORAGE_KEY);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+
+    setForm((current) => ({
+      ...current,
+      fullName:
+        current.fullName ||
+        user.name ||
+        user.displayName ||
+        "",
+      email:
+        current.email ||
+        user.email ||
+        "",
+    }));
+  }, [user]);
+
 
 const certificateOptions = [
     {
@@ -353,10 +416,20 @@ const certificateOptions = [
     const payload = {
       form,
       uploadedDocuments,
+      step,
       savedAt: new Date().toISOString(),
       status: "draft",
     };
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+
+    setWorkflowStage(
+      newApplication.id,
+      "PAYMENT"
+    );
+    sessionStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify(payload)
+    );
+
     setSaved(true);
   };
 
@@ -411,14 +484,56 @@ const certificateOptions = [
 
   const submit = () => {
     if (!validateStep()) return;
-    const requestId = `REQ-${Date.now().toString().slice(-6)}`;
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
+
+    const requestId = `REQ-${Date.now()
+      .toString()
+      .slice(-6)}`;
+
+    const qualificationLabel =
+      getQualificationLabel(
+        form.qualificationType
+      );
+
+    const institutionLabel =
+      getInstitutionLabel(form.institution);
+
+    const newApplication = createMockApplication({
+      id: requestId,
+      ownerUserId: user?.id || "",
+      applicant: form.fullName,
+      applicantEn: form.fullName,
+      qualification: qualificationLabel,
+      qualificationEn: qualificationLabel,
+      qualificationKey: form.qualificationType,
+      university: institutionLabel,
+      universityEn: institutionLabel,
+      status: "قيد الدراسة",
+      statusEn: "Under review",
+      statusKey: "UNDER_REVIEW",
+      date: new Date()
+        .toISOString()
+        .slice(0, 10),
+      archived: false,
       form,
       uploadedDocuments,
-      requestId,
-      status: "submitted",
-      submittedAt: new Date().toISOString(),
-    }));
+    });
+
+    setWorkflowStage(
+      newApplication.id,
+      "PAYMENT"
+    );
+    sessionStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        form,
+        uploadedDocuments,
+        requestId: newApplication.id,
+        status: "submitted",
+        submittedAt:
+          new Date().toISOString(),
+      })
+    );
+
     setSubmitted(true);
   };
 
@@ -865,6 +980,15 @@ options={filteredSpecializationOptions}
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
 
 
 

@@ -1,4 +1,4 @@
-export const WORKFLOW_STAGES = Object.freeze({
+﻿export const WORKFLOW_STAGES = Object.freeze({
   SUBMITTED: "SUBMITTED",
   PAYMENT: "PAYMENT",
   DOCUMENTS: "DOCUMENTS",
@@ -49,8 +49,8 @@ export const COMMITTEE_RESULTS = Object.freeze({
 
 export const WORKFLOW_STEPS = [
   { key: WORKFLOW_STAGES.SUBMITTED, labelKey: "workflow.submitted" },
-  { key: WORKFLOW_STAGES.PAYMENT, labelKey: "workflow.payment" },
   { key: WORKFLOW_STAGES.DOCUMENTS, labelKey: "workflow.documents" },
+  { key: WORKFLOW_STAGES.PAYMENT, labelKey: "workflow.payment" },
   { key: WORKFLOW_STAGES.PAPER_RECEIVING, labelKey: "workflow.paperReceiving" },
   { key: WORKFLOW_STAGES.STUDY, labelKey: "workflow.study" },
   { key: WORKFLOW_STAGES.INSTITUTION_VERIFICATION, labelKey: "workflow.institutionVerification" },
@@ -62,3 +62,4 @@ export const WORKFLOW_STEPS = [
   { key: WORKFLOW_STAGES.FINALIZATION, labelKey: "workflow.finalization" },
   { key: WORKFLOW_STAGES.DELIVERY, labelKey: "workflow.delivery" },
 ];
+

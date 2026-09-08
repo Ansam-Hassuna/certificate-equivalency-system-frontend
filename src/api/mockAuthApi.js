@@ -1,18 +1,150 @@
 ﻿import { PERMISSIONS } from "../auth/permissions";
 import { ROLES, ROLE_PERMISSIONS } from "../auth/roles";
 
-const API_BASE_URL =
-  process.env.REACT_APP_API_BASE_URL;
-
 const SESSION_KEY = "ce_auth_session";
+const REGISTERED_USERS_KEY = "ce_mock_registered_users";
+const USER_OVERRIDES_KEY = "ce_mock_user_overrides";
 
 const isBrowser =
   typeof window !== "undefined";
+
+const DEMO_USERS = [
+  {
+    id: "mock-user-admin",
+    email: "admin@test.com",
+    displayName: "System Administrator",
+    role: ROLES.ADMIN,
+    password: "Demo@12345",
+  },
+  {
+    id: "mock-user-manager",
+    email: "manager@test.com",
+    displayName: "System Manager",
+    role: ROLES.MANAGER,
+    password: "Demo@12345",
+  },
+  {
+    id: "mock-user-equivalency",
+    email: "equivalency@test.com",
+    displayName: "Equivalency Officer",
+    role: ROLES.EQUIVALENCY,
+    password: "Demo@12345",
+  },
+  {
+    id: "mock-user-receiving",
+    email: "receiving@test.com",
+    displayName: "Receiving Officer",
+    role: ROLES.RECEIVING,
+    password: "Demo@12345",
+  },
+  {
+    id: "mock-user-office",
+    email: "office@test.com",
+    displayName: "Higher Education Office Officer",
+    role: ROLES.OFFICE,
+    password: "Demo@12345",
+  },
+  {
+    id: "mock-user-inquiry",
+    email: "inquiry@test.com",
+    displayName: "Inquiry Officer",
+    role: ROLES.INQUIRY,
+    password: "Demo@12345",
+  },
+  {
+    id: "mock-user-committee",
+    email: "committee@test.com",
+    displayName: "Committee Member",
+    role: ROLES.COMMITTEE_MEMBER,
+    password: "Demo@12345",
+  },
+  {
+    id: "mock-user-archive",
+    email: "archive@test.com",
+    displayName: "Archive Officer",
+    role: ROLES.ARCHIVE,
+    password: "Demo@12345",
+  },
+  {
+    id: "mock-user-printing",
+    email: "printing@test.com",
+    displayName: "Printing Officer",
+    role: ROLES.PRINTING,
+    password: "Demo@12345",
+  },
+  {
+    id: "mock-user-applicant",
+    email: "applicant@test.com",
+    displayName: "Applicant User",
+    role: ROLES.APPLICANT,
+    password: "Demo@12345",
+  },
+];
 
 function normalizeEmail(email) {
   return String(email || "")
     .trim()
     .toLowerCase();
+}
+
+function readRegisteredUsers() {
+  if (!isBrowser) return [];
+
+  try {
+    const value =
+      window.sessionStorage.getItem(
+        REGISTERED_USERS_KEY
+      );
+
+    return value ? JSON.parse(value) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveRegisteredUsers(users) {
+  if (!isBrowser) return;
+
+  window.sessionStorage.setItem(
+    REGISTERED_USERS_KEY,
+    JSON.stringify(users)
+  );
+}
+
+function readUserOverrides() {
+  if (!isBrowser) return {};
+
+  try {
+    const value =
+      window.sessionStorage.getItem(
+        USER_OVERRIDES_KEY
+      );
+
+    return value ? JSON.parse(value) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveUserOverrides(overrides) {
+  if (!isBrowser) return;
+
+  window.sessionStorage.setItem(
+    USER_OVERRIDES_KEY,
+    JSON.stringify(overrides)
+  );
+}
+
+function getUsers() {
+  const overrides = readUserOverrides();
+
+  return [
+    ...DEMO_USERS,
+    ...readRegisteredUsers(),
+  ].map((user) => ({
+    ...user,
+    ...(overrides[user.id] || {}),
+  }));
 }
 
 function getPermissions(role) {
@@ -23,328 +155,75 @@ function getPermissions(role) {
   );
 }
 
-function getStoredSession() {
-  if (!isBrowser) return null;
-
-  try {
-    const stored =
-      window.sessionStorage.getItem(
-        SESSION_KEY
-      );
-
-    return stored
-      ? JSON.parse(stored)
-      : null;
-  } catch {
-    return null;
-  }
-}
-
-function getStoredToken() {
-  const session =
-    getStoredSession();
-
-  return (
-    session?.token ||
-    session?.accessToken ||
-    session?.user?.token ||
-    session?.user?.accessToken ||
-    null
-  );
-}
-
-function getAuthHeaders() {
-  const token =
-    getStoredToken();
-
-  return {
-    Accept: "application/json",
-    ...(token
-      ? {
-          Authorization: `Bearer ${token}`,
-        }
-      : {}),
-  };
-}
-
-async function parseResponse(response) {
-  let data = null;
-
-  try {
-    data = await response.json();
-  } catch {
-    data = null;
-  }
-
-  if (!response.ok) {
-    const error = new Error(
-      data?.message ||
-        data?.error ||
-        data?.title ||
-        `Request failed with status ${response.status}.`
-    );
-
-    error.status =
-      response.status;
-
-    error.details = data;
-
-    throw error;
-  }
-
-  return data;
-}
-
-function getRoleFromToken(token) {
-  if (!token) return null;
-
-  try {
-    const parts =
-      String(token).split(".");
-
-    if (parts.length !== 3) {
-      return null;
-    }
-
-    const base64 = parts[1]
-      .replace(/-/g, "+")
-      .replace(/_/g, "/");
-
-    const padded =
-      base64 +
-      "=".repeat(
-        (4 - (base64.length % 4)) % 4
-      );
-
-    const payload =
-      JSON.parse(
-        decodeURIComponent(
-          atob(padded)
-            .split("")
-            .map(
-              (character) =>
-                "%" +
-                (
-                  "00" +
-                  character
-                    .charCodeAt(0)
-                    .toString(16)
-                ).slice(-2)
-            )
-            .join("")
-        )
-      );
-
-    const role =
-      payload[
-        "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
-      ] ||
-      payload[
-        "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/role"
-      ] ||
-      payload.role ||
-      payload.roles;
-
-    if (Array.isArray(role)) {
-      return role[0] || null;
-    }
-
-    return role || null;
-  } catch {
-    return null;
-  }
-}
-
-function normalizePermissions(
-  data,
-  role
-) {
-  if (
-    Array.isArray(data?.permissions) &&
-    data.permissions.length > 0
-  ) {
-    return data.permissions;
-  }
-
-  if (
-    Array.isArray(data?.permissionNames) &&
-    data.permissionNames.length > 0
-  ) {
-    return data.permissionNames;
-  }
-
-  if (
-    Array.isArray(data?.claims) &&
-    data.claims.length > 0
-  ) {
-    return data.claims;
-  }
-
-  return getPermissions(role);
-}
-
-function normalizeApiUser(payload) {
-  if (!payload) return null;
-
-  const data =
-    payload.user ||
-    payload.data ||
-    payload;
-
-  if (!data) return null;
-
-  const token =
-    data.token ||
-    data.accessToken ||
-    data.jwt ||
-    payload.token ||
-    payload.accessToken ||
-    null;
-
+function toSafeUser(user) {
   const role =
-    data.role ||
-    (Array.isArray(data.roles)
-      ? data.roles[0]
-      : data.roles) ||
-    getRoleFromToken(token) ||
-    ROLES.APPLICANT;
+    user.role || ROLES.APPLICANT;
 
   return {
-    id:
-      data.id ||
-      data.userId ||
-      data.Id ||
-      null,
-
-    email:
-      data.email ||
-      data.Email ||
-      "",
-
+    id: user.id,
+    email: normalizeEmail(user.email),
     displayName:
-      data.displayName ||
-      data.DisplayName ||
-      data.name ||
-      data.Name ||
-      data.email ||
-      data.Email ||
+      user.displayName ||
+      user.name ||
       "",
-
     name:
-      data.name ||
-      data.Name ||
-      data.displayName ||
-      data.DisplayName ||
+      user.name ||
+      user.displayName ||
       "",
-
     role,
-
-    roles:
-      Array.isArray(data.roles)
-        ? data.roles
-        : role
-          ? [role]
-          : [],
-
     imageUrl:
-      data.imageUrl ||
-      data.avatarUrl ||
-      null,
-
+      user.imageUrl || null,
     emailVerified:
-      data.emailVerified !==
-        undefined
-        ? Boolean(
-            data.emailVerified
-          )
+      user.emailVerified !== undefined
+        ? Boolean(user.emailVerified)
         : true,
-
     active:
-      data.active !== undefined
-        ? Boolean(data.active)
-        : data.isActive !==
-            undefined
-          ? Boolean(
-              data.isActive
-            )
-          : true,
-
+      user.active !== undefined
+        ? Boolean(user.active)
+        : true,
     permissions:
-      normalizePermissions(
-        data,
-        role
-      ),
-
-    token,
+      Array.isArray(user.permissions) &&
+      user.permissions.length > 0
+        ? user.permissions
+        : getPermissions(role),
+    token:
+      user.token ||
+      `mock-token-${user.id}`,
   };
-}
-
-function normalizeLoginResponse(
-  payload
-) {
-  const user =
-    normalizeApiUser(payload);
-
-  if (!user) return null;
-
-  return {
-    ...payload,
-    user,
-    ...(!payload.user
-      ? user
-      : {}),
-  };
-}
-
-function normalizeUserList(payload) {
-  const users =
-    Array.isArray(payload)
-      ? payload
-      : Array.isArray(
-            payload?.users
-          )
-        ? payload.users
-        : Array.isArray(
-              payload?.data
-            )
-          ? payload.data
-          : [];
-
-  return users
-    .map((item) =>
-      normalizeApiUser(item)
-    )
-    .filter(Boolean);
 }
 
 export const authApi = {
   async session() {
-    return getStoredSession();
+    if (!isBrowser) return null;
+
+    try {
+      const stored =
+        window.sessionStorage.getItem(
+          SESSION_KEY
+        );
+
+      return stored
+        ? JSON.parse(stored)
+        : null;
+    } catch {
+      return null;
+    }
   },
 
-  async login(
-    email,
-    password
-  ) {
-    if (!API_BASE_URL) {
-      const error = new Error(
-        "API base URL is not configured."
-      );
-
-      error.code =
-        "API_BASE_URL_MISSING";
-
-      error.status = 500;
-
-      throw error;
-    }
-
+  async login(email, password) {
     const normalizedEmail =
       normalizeEmail(email);
 
+    const user = getUsers().find(
+      (item) =>
+        normalizeEmail(item.email) ===
+        normalizedEmail
+    );
+
     if (
-      !normalizedEmail ||
-      !String(password || "")
+      !user ||
+      String(user.password) !==
+        String(password)
     ) {
       const error = new Error(
         "Invalid email or password."
@@ -353,95 +232,28 @@ export const authApi = {
       error.code =
         "INVALID_CREDENTIALS";
 
-      error.status = 400;
+      error.status = 401;
 
       throw error;
     }
 
-    let response;
-
-    try {
-      response = await fetch(
-        `${API_BASE_URL}/api/Account/login`,
-        {
-          method: "POST",
-
-          headers: {
-            "Content-Type":
-              "application/json",
-
-            Accept:
-              "application/json",
-          },
-
-          body: JSON.stringify({
-            email:
-              normalizedEmail,
-
-            password:
-              String(password),
-          }),
-        }
-      );
-    } catch (networkError) {
+    if (user.active === false) {
       const error = new Error(
-        networkError?.message ||
-          "Unable to connect to the authentication server."
+        "This account is inactive."
       );
 
       error.code =
-        "NETWORK_ERROR";
+        "ACCOUNT_INACTIVE";
 
-      error.status = 0;
-
-      error.details =
-        networkError;
+      error.status = 403;
 
       throw error;
     }
 
-    const data =
-      await parseResponse(
-        response
-      );
-
-    const normalizedResponse =
-      normalizeLoginResponse(
-        data
-      );
-
-    if (!normalizedResponse) {
-      const error = new Error(
-        "The authentication server returned an invalid user response."
-      );
-
-      error.code =
-        "INVALID_SERVER_RESPONSE";
-
-      error.status = 502;
-
-      error.details = data;
-
-      throw error;
-    }
-
-    return normalizedResponse;
+    return toSafeUser(user);
   },
 
   async register(data) {
-    if (!API_BASE_URL) {
-      const error = new Error(
-        "API base URL is not configured."
-      );
-
-      error.code =
-        "API_BASE_URL_MISSING";
-
-      error.status = 500;
-
-      throw error;
-    }
-
     const email =
       normalizeEmail(data?.email);
 
@@ -453,9 +265,7 @@ export const authApi = {
       ).trim();
 
     const password =
-      String(
-        data?.password || ""
-      );
+      String(data?.password || "");
 
     if (
       !email ||
@@ -474,203 +284,159 @@ export const authApi = {
       throw error;
     }
 
-    let response;
+    const exists = getUsers().some(
+      (item) =>
+        normalizeEmail(item.email) ===
+        email
+    );
 
-    try {
-      response = await fetch(
-        `${API_BASE_URL}/api/Account/register`,
-        {
-          method: "POST",
-
-          headers: {
-            "Content-Type":
-              "application/json",
-
-            Accept:
-              "application/json",
-          },
-
-          body: JSON.stringify({
-            displayName,
-            email,
-            password,
-          }),
-        }
-      );
-    } catch (networkError) {
+    if (exists) {
       const error = new Error(
-        networkError?.message ||
-          "Unable to connect to the registration server."
+        "An account with this email already exists."
       );
 
       error.code =
-        "NETWORK_ERROR";
+        "EMAIL_ALREADY_EXISTS";
 
-      error.status = 0;
-
-      error.details =
-        networkError;
+      error.status = 409;
 
       throw error;
     }
 
-    return parseResponse(
-      response
-    );
+    const newUser = {
+      id:
+        `mock-user-${Date.now()}`,
+      email,
+      displayName,
+      name: displayName,
+      role: ROLES.APPLICANT,
+      password,
+      emailVerified: false,
+      active: true,
+    };
+
+    const users =
+      readRegisteredUsers();
+
+    users.push(newUser);
+
+    saveRegisteredUsers(users);
+
+    return toSafeUser(newUser);
   },
 
   async listUsers() {
-    if (!API_BASE_URL) {
-      const error = new Error(
-        "API base URL is not configured."
-      );
-
-      error.code =
-        "API_BASE_URL_MISSING";
-
-      error.status = 500;
-
-      throw error;
-    }
-
-    let response;
-
-    try {
-      response = await fetch(
-        `${API_BASE_URL}/api/Admin/users-with-roles`,
-        {
-          method: "GET",
-
-          headers:
-            getAuthHeaders(),
-        }
-      );
-    } catch (networkError) {
-      const error = new Error(
-        networkError?.message ||
-          "Unable to connect to the server."
-      );
-
-      error.code =
-        "NETWORK_ERROR";
-
-      error.status = 0;
-
-      error.details =
-        networkError;
-
-      throw error;
-    }
-
-    const data =
-      await parseResponse(
-        response
-      );
-
-    return normalizeUserList(
-      data
-    );
+    return getUsers().map((user) => ({
+      ...toSafeUser(user),
+      permissions: getPermissions(
+        user.role
+      ),
+    }));
   },
 
   async updateUserRole(
     userId,
     role
   ) {
-    if (!API_BASE_URL) {
-      const error = new Error(
-        "API base URL is not configured."
-      );
-
-      error.code =
-        "API_BASE_URL_MISSING";
-
-      error.status = 500;
-
-      throw error;
-    }
-
-    if (!userId) {
-      const error = new Error(
-        "User ID is required."
-      );
-
-      error.code =
-        "USER_ID_REQUIRED";
-
-      error.status = 400;
-
-      throw error;
-    }
-
     if (
-      !Object.values(
-        ROLES
-      ).includes(role)
+      !userId ||
+      !Object.values(ROLES).includes(role)
     ) {
       const error = new Error(
-        "Invalid role."
+        "Invalid user or role."
       );
 
-      error.code =
-        "INVALID_ROLE";
-
+      error.code = "INVALID_USER_ROLE";
       error.status = 400;
 
       throw error;
     }
 
-    let response;
+    const users = getUsers();
+    const user = users.find(
+      (item) => item.id === userId
+    );
 
-    try {
-      response = await fetch(
-        `${API_BASE_URL}/api/Admin/edit-roles/${encodeURIComponent(
-          userId
-        )}?roles=${encodeURIComponent(
-          role
-        )}`,
-        {
-          method: "POST",
-
-          headers:
-            getAuthHeaders(),
-        }
-      );
-    } catch (networkError) {
+    if (!user) {
       const error = new Error(
-        networkError?.message ||
-          "Unable to connect to the server."
+        "User not found."
       );
 
-      error.code =
-        "NETWORK_ERROR";
-
-      error.status = 0;
-
-      error.details =
-        networkError;
+      error.code = "USER_NOT_FOUND";
+      error.status = 404;
 
       throw error;
     }
 
-    return parseResponse(
-      response
-    );
+    const overrides = readUserOverrides();
+
+    overrides[userId] = {
+      ...(overrides[userId] || {}),
+      role,
+      permissions: getPermissions(role),
+    };
+
+    saveUserOverrides(overrides);
+
+    return {
+      ...toSafeUser({
+        ...user,
+        role,
+        permissions: getPermissions(role),
+      }),
+      permissions: getPermissions(role),
+    };
   },
 
   async setUserActive(
     userId,
     active
   ) {
-    const error = new Error(
-      "Changing user account status is not supported by the current backend API."
+    if (!userId) {
+      const error = new Error(
+        "User ID is required."
+      );
+
+      error.code = "USER_ID_REQUIRED";
+      error.status = 400;
+
+      throw error;
+    }
+
+    const users = getUsers();
+    const user = users.find(
+      (item) => item.id === userId
     );
 
-    error.code =
-      "USER_STATUS_API_NOT_IMPLEMENTED";
+    if (!user) {
+      const error = new Error(
+        "User not found."
+      );
 
-    error.status = 501;
+      error.code = "USER_NOT_FOUND";
+      error.status = 404;
 
-    throw error;
+      throw error;
+    }
+
+    const overrides = readUserOverrides();
+
+    overrides[userId] = {
+      ...(overrides[userId] || {}),
+      active: Boolean(active),
+    };
+
+    saveUserOverrides(overrides);
+
+    return {
+      ...toSafeUser({
+        ...user,
+        active: Boolean(active),
+      }),
+      permissions: getPermissions(
+        user.role
+      ),
+    };
   },
 
   async refresh() {
@@ -684,6 +450,16 @@ export function clearMockAuthData() {
   window.sessionStorage.removeItem(
     SESSION_KEY
   );
+
+  window.sessionStorage.removeItem(
+    REGISTERED_USERS_KEY
+  );
+
+  window.sessionStorage.removeItem(
+    USER_OVERRIDES_KEY
+  );
 }
 
 export default authApi;
+
+

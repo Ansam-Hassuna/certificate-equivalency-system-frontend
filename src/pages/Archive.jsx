@@ -30,9 +30,9 @@ function Content(){
   const qualificationOptions=QUALIFICATION_KEYS.map((item)=>({value:item.value,label:language==="ar"?item.ar:item.en}));
   const columns=[{key:"id",label:t("applications.id")},{key:"applicant",label:t("applications.applicant")},{key:"qualification",label:t("applications.qualification")},{key:"status",label:t("common.status")},{key:"date",label:t("applications.date")},{key:"actions",label:t("common.actions")}];
   return <ScreenShell title={t("archive.title")} description={language==="ar"?"الطلبات القديمة لا تظهر في القوائم النشطة، لكنها محفوظة ويمكن الوصول إليها من خلال البحث أو الأرشيف.":"Old requests are kept out of active lists but remain available through search and the archive."} icon="archive" stats={[
-    {label:language==="ar"?"Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„Ù…Ø¤Ø±Ø´Ù":"Archived",value:archive.length},
-    {label:language==="ar"?"Ø§Ù„Ù†ØªØ§Ø¦Ø¬ Ø§Ù„Ø­Ø§Ù„ÙŠØ©":"Current results",value:filtered.length},
-    {label:language==="ar"?"Ø£Ù‚Ø¯Ù… Ø·Ù„Ø¨":"Oldest request",value:archive.length?archive[archive.length-1].date:"â€”"},
+    {label:language==="ar"?"إجمالي المؤرشفة":"Archived",value:archive.length},
+    {label:language==="ar"?"النتائج الحالية":"Current results",value:filtered.length},
+    {label:language==="ar"?"أقدم طلب":"Oldest request",value:archive.length?archive[archive.length-1].date:"—"},
   ]}>
     <Card>
       <div className="archive-info-banner"><strong>{language==="ar"?"الأرشيف لا يعني الحذف":"Archive does not mean deletion"}</strong><span>{language==="ar"?"تبقى السجلات محفوظة ويمكن استرجاعها والبحث عنها عند الحاجة.":"Records remain preserved and can be found whenever needed."}</span></div>
@@ -40,11 +40,11 @@ function Content(){
         search={search}
         onSearch={(value)=>{setSearch(String(value??""));setPage(1)}}
         searchPlaceholder={language==="ar"?"ابحث في الأرشيف برقم الطلب أو الاسم...":"Search archive by request ID or name..."}
-        labels={{filters:language==="ar"?"Ø§Ù„ÙÙ„Ø§ØªØ±":"Filters",reset:language==="ar"?"Ù…Ø³Ø­ Ø§Ù„ÙƒÙ„":"Clear all",apply:language==="ar"?"ØªØ·Ø¨ÙŠÙ‚":"Apply",active:language==="ar"?"Ø§Ù„ÙÙ„Ø§ØªØ± Ø§Ù„Ù†Ø´Ø·Ø©":"Active filters"}}
+        labels={{filters:language==="ar"?"الفلاتر":"Filters",reset:language==="ar"?"مسح الكل":"Clear all",apply:language==="ar"?"تطبيق":"Apply",active:language==="ar"?"الفلاتر النشطة":"Active filters"}}
         filters={[
-          {key:"qualification",label:language==="ar"?"Ø§Ù„Ù…Ø¤Ù‡Ù„":"Qualification",value:filters.qualification,defaultValue:"all",onChange:(v)=>setFilter("qualification",v),options:qualificationOptions},
-          {key:"from",label:language==="ar"?"Ù…Ù† ØªØ§Ø±ÙŠØ®":"From date",value:filters.from,defaultValue:"",onChange:(v)=>setFilter("from",v),type:"date"},
-          {key:"to",label:language==="ar"?"Ø¥Ù„Ù‰ ØªØ§Ø±ÙŠØ®":"To date",value:filters.to,defaultValue:"",onChange:(v)=>setFilter("to",v),type:"date"},
+          {key:"qualification",label:language==="ar"?"المؤهل":"Qualification",value:filters.qualification,defaultValue:"all",onChange:(v)=>setFilter("qualification",v),options:qualificationOptions},
+          {key:"from",label:language==="ar"?"من تاريخ":"From date",value:filters.from,defaultValue:"",onChange:(v)=>setFilter("from",v),type:"date"},
+          {key:"to",label:language==="ar"?"إلى تاريخ":"To date",value:filters.to,defaultValue:"",onChange:(v)=>setFilter("to",v),type:"date"},
         ]}
         onReset={reset}
       />
@@ -57,4 +57,6 @@ function Content(){
   </ScreenShell>
 }
 export default function Archive(){return <RequirePermission permission={PERMISSIONS.ARCHIVE_DOCUMENT}><Content/></RequirePermission>}
+
+
 

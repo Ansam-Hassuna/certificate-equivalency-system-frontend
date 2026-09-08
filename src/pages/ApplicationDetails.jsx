@@ -8,10 +8,16 @@ import { useAuth } from "../auth/AuthContext";
 import ScreenShell from "./workflow/ScreenShell";
 import Card from "../components/ui/Card";
 import Badge from "../components/ui/Badge";
-import { WORKFLOW_STAGES, WORKFLOW_STEPS } from "../config/workflow";
+import { WORKFLOW_STAGES, WORKFLOW_STEPS, COMMITTEE_TYPES } from "../config/workflow";
 import { REQUEST_ROWS, getLocalizedRequestRows } from "./workflow/data";
 import { getDeliveryState, isDeliveryCompleted } from "../features/delivery";
 import { getReceivingState, isReceivingCompleted } from "../features/receiving";
+import { getPaymentState, isPaymentConfirmed } from "../features/payments";
+import {
+  getWorkflowState,
+  updateWorkflowState,
+  addInquiry,
+} from "../features/workflow/workflowStore";
 import "./workflow/OperationalWorkflow.css";
 
 function Content() {
@@ -27,6 +33,12 @@ function Content() {
   const canDeliver = can(PERMISSIONS.DELIVERY);
   const [deliveryState, setDeliveryState] = useState(null);
   const [receivingState, setReceivingState] = useState(null);
+  const [paymentState, setPaymentState] = useState(null);
+  const [workflowState, setWorkflowState] = useState(() =>
+    getWorkflowState(id)
+  );
+  const [actionNote, setActionNote] = useState("");
+  const [actionError, setActionError] = useState("");
 
   const localizedRequests = getLocalizedRequestRows(language);
 
@@ -75,6 +87,149 @@ function Content() {
     };
   }, [id]);
 
+  useEffect(() => {
+    let active = true;
+
+    getPaymentState(id)
+      .then((state) => {
+        if (active) {
+          setPaymentState(state);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setPaymentState(null);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [id]);
+  useEffect(() => {
+    setWorkflowState(
+      getWorkflowState(id)
+    );
+  }, [id]);
+
+  const canReview =
+    can(PERMISSIONS.APPLICATION_REVIEW);
+
+  const canVerifyInstitution =
+    can(PERMISSIONS.UNIVERSITY_VERIFY);
+
+  const canVerifyCredential =
+    can(PERMISSIONS.CREDENTIAL_VERIFY);
+
+  const canRoute =
+    can(PERMISSIONS.ROUTE_APPLICATION);
+
+  const canHold =
+    can(PERMISSIONS.HOLD_APPLICATION);
+
+  const handleWorkflowAction = (action) => {
+    setActionError("");
+
+    try {
+      let nextStage = workflowState.stage;
+
+      if (action === "REVIEW") {
+        nextStage = WORKFLOW_STAGES.STUDY;
+      }
+
+      if (action === "INSTITUTION_VERIFY") {
+        nextStage =
+          WORKFLOW_STAGES.INSTITUTION_VERIFICATION;
+      }
+
+      if (action === "CREDENTIAL_VERIFY") {
+        nextStage =
+          WORKFLOW_STAGES.CREDENTIAL_INQUIRY;
+      }
+
+      if (action === "ROUTE") {
+        nextStage =
+          WORKFLOW_STAGES.SPECIALIZED_COMMITTEE;
+      }
+
+      const patch = {
+        stage: nextStage,
+        ...(actionNote.trim()
+          ? {
+              lastActionNote:
+                actionNote.trim(),
+            }
+          : {}),
+        lastAction: action,
+        lastActionAt:
+          new Date().toISOString(),
+      };
+
+      if (action === "ROUTE") {
+        patch.committee = {
+          type:
+            COMMITTEE_TYPES.SPECIALIZED,
+          state: "QUEUED",
+          priority: 1,
+          assignedAt:
+            new Date().toISOString(),
+        };
+      }
+
+      const nextState =
+        updateWorkflowState(
+          id,
+          patch
+        );
+
+      setWorkflowState(nextState);
+      setActionNote("");
+    } catch {
+      setActionError(
+        ar
+          ? "تعذر تسجيل الإجراء."
+          : "Unable to record the action."
+      );
+    }
+  };
+
+  const createCredentialInquiry = () => {
+    setActionError("");
+
+    try {
+      const inquiry = {
+        id: `INQ-${id}-${Date.now()
+          .toString()
+          .slice(-4)}`,
+        institution:
+          request.university || "—",
+        institutionEn:
+          request.universityEn || "—",
+        subject:
+          "التحقق من صحة الشهادة",
+        subjectEn:
+          "Credential authenticity verification",
+        state: "WAITING_RESPONSE",
+        sentAt: new Date()
+          .toISOString()
+          .slice(0, 10),
+      };
+
+      const nextState =
+        addInquiry(
+          id,
+          inquiry
+        );
+
+      setWorkflowState(nextState);
+    } catch {
+      setActionError(
+        ar
+          ? "تعذر إنشاء الاستفسار."
+          : "Unable to create the inquiry."
+      );
+    }
+  };
   const isOwnRequest =
     Boolean(request) &&
     request.ownerUserId === user?.id;
@@ -120,34 +275,41 @@ function Content() {
     COMPLETED: WORKFLOW_STAGES.DELIVERY,
   };
 
+  const paymentConfirmed =
+    isPaymentConfirmed(paymentState);
+
   const deliveryCompleted =
     isDeliveryCompleted(deliveryState);
 
   const receivingCompleted =
     isReceivingCompleted(receivingState);
 
-  const baseCurrent =
-    deliveryCompleted
-      ? WORKFLOW_STAGES.DELIVERY
-      : currentStageByStatus[request.statusKey] ||
-        WORKFLOW_STAGES.SUBMITTED;
+  const workflowStage =
+    workflowState?.stage;
 
-  const baseCurrentIndex =
-    WORKFLOW_STEPS.findIndex(
-      (step) => step.key === baseCurrent
-    );
+  const isCompletedRequest =
+    request.statusKey === "COMPLETED";
 
-  const paperReceivingIndex =
-    WORKFLOW_STEPS.findIndex(
-      (step) => step.key === WORKFLOW_STAGES.PAPER_RECEIVING
-    );
+  let current;
 
-  const current =
-    receivingCompleted &&
-    baseCurrentIndex >= 0 &&
-    baseCurrentIndex <= paperReceivingIndex
-      ? WORKFLOW_STAGES.STUDY
-      : baseCurrent;
+  if (
+    workflowStage &&
+    workflowStage !== WORKFLOW_STAGES.SUBMITTED
+  ) {
+    current = workflowStage;
+  } else if (isCompletedRequest) {
+    current =
+      currentStageByStatus[request.statusKey] ||
+      WORKFLOW_STAGES.DELIVERY;
+  } else if (!paymentConfirmed) {
+    current = WORKFLOW_STAGES.PAYMENT;
+  } else if (!receivingCompleted) {
+    current = WORKFLOW_STAGES.PAPER_RECEIVING;
+  } else {
+    current =
+      currentStageByStatus[request.statusKey] ||
+      WORKFLOW_STAGES.STUDY;
+  }
 
   const labels = ar
     ? {
@@ -264,7 +426,7 @@ function Content() {
             <div className="workflow-note">
               <strong>{labels.waiting}</strong>
               <p>
-                {request.statusKey === "AWAITING_INQUIRY"
+                {workflowState?.inquiry?.state || request.statusKey === "AWAITING_INQUIRY"
                   ? labels.waitingText
                   : ar
                   ? "لا يوجد استفسار نشط حاليًا على الطلب."
@@ -275,6 +437,141 @@ function Content() {
 
         </div>
 
+        {(!isApplicant && (
+          canReview ||
+          canVerifyInstitution ||
+          canVerifyCredential ||
+          canRoute
+        )) && (
+          <Card
+            title={
+              ar
+                ? "إجراءات موظف المعادلات"
+                : "Equivalency Officer Actions"
+            }
+          >
+            <div
+              style={{
+                display: "flex",
+                gap: 12,
+                flexWrap: "wrap",
+              }}
+            >
+              {canReview && (
+                <button
+                  type="button"
+                  className="ui-button"
+                  onClick={() =>
+                    handleWorkflowAction(
+                      "REVIEW"
+                    )
+                  }
+                >
+                  {ar
+                    ? "مراجعة الطلب"
+                    : "Review application"}
+                </button>
+              )}
+
+              {canVerifyInstitution && (
+                <button
+                  type="button"
+                  className="ui-button"
+                  onClick={() =>
+                    handleWorkflowAction(
+                      "INSTITUTION_VERIFY"
+                    )
+                  }
+                >
+                  {ar
+                    ? "التحقق من المؤسسة"
+                    : "Verify institution"}
+                </button>
+              )}
+
+              {canVerifyCredential && (
+                <>
+                  <button
+                    type="button"
+                    className="ui-button"
+                    onClick={() =>
+                      handleWorkflowAction(
+                        "CREDENTIAL_VERIFY"
+                      )
+                    }
+                  >
+                    {ar
+                      ? "التحقق من الشهادة"
+                      : "Verify credential"}
+                  </button>
+
+                  <button
+                    type="button"
+                    className="ui-button"
+                    onClick={
+                      createCredentialInquiry
+                    }
+                  >
+                    {ar
+                      ? "طلب استفسار"
+                      : "Create inquiry"}
+                  </button>
+                </>
+              )}
+
+              {canRoute && (
+                <button
+                  type="button"
+                  className="ui-button"
+                  onClick={() =>
+                    handleWorkflowAction(
+                      "ROUTE"
+                    )
+                  }
+                >
+                  {ar
+                    ? "إحالة الطلب"
+                    : "Route application"}
+                </button>
+              )}
+            </div>
+
+            <div
+              style={{
+                marginTop: 14,
+              }}
+            >
+              <textarea
+                value={actionNote}
+                onChange={(event) =>
+                  setActionNote(
+                    event.target.value
+                  )
+                }
+                rows={3}
+                placeholder={
+                  ar
+                    ? "ملاحظة الإجراء..."
+                    : "Action note..."
+                }
+                style={{
+                  width: "100%",
+                  resize: "vertical",
+                }}
+              />
+            </div>
+
+            {actionError && (
+              <div
+                className="workflow-note"
+                role="alert"
+                style={{ marginTop: 12 }}
+              >
+                {actionError}
+              </div>
+            )}
+          </Card>
+        )}
         <Card>
           <div
             style={{
@@ -361,6 +658,22 @@ function Content() {
   );
 }
 export default function ApplicationDetails(){return <RequirePermission permissions={[PERMISSIONS.APPLICATION_VIEW_OWN,PERMISSIONS.VIEW_APPLICATIONS]} mode="any"><Content/></RequirePermission>;}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

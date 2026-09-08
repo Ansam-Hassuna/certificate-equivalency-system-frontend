@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+﻿import React, { useCallback, useMemo, useState } from "react";
 import { useLanguage } from "../context/LanguageContext";
 import { PERMISSIONS } from "../auth/permissions";
 import { RequirePermission } from "../auth/guards";
@@ -10,6 +10,11 @@ import Table from "../components/ui/Table";
 import FilterBar from "../components/ui/FilterBar";
 import { COMMITTEE_RESULTS, COMMITTEE_TYPES } from "../config/workflow";
 import { COMMITTEE_ROWS } from "./workflow/operationalData";
+import {
+  getWorkflowState,
+  updateWorkflowState,
+} from "../features/workflow/workflowStore";
+import { getStoredApplications } from "../features/applications/mockApplicationStore";
 import "./workflow/OperationalWorkflow.css";
 
 const STORAGE_KEY = "certificate-equivalency-committee-state";
@@ -32,8 +37,82 @@ function Content() {
   const canCoordinate = can(PERMISSIONS.COMMITTEE_COORDINATE);
   const canRecord = can(PERMISSIONS.COMMITTEE_RECORD);
   const canReviewHigher = can(PERMISSIONS.HIGHER_COMMITTEE_REVIEW);
+  const buildCommitteeRows = () => {
+    const applications =
+      getStoredApplications();
+
+    const dynamicRows = applications
+      .map((application) => {
+        const workflow =
+          getWorkflowState(application.id);
+
+        if (
+          workflow.stage !== "ROUTING" &&
+          workflow.stage !== "SPECIALIZED_COMMITTEE" &&
+          workflow.stage !== "HIGHER_COMMITTEE"
+        ) {
+          return null;
+        }
+
+        return {
+          id: application.id,
+          applicant:
+            application.applicant || "—",
+          applicantEn:
+            application.applicantEn ||
+            application.applicant ||
+            "—",
+          qualification:
+            application.qualification || "—",
+          qualificationEn:
+            application.qualificationEn ||
+            application.qualification ||
+            "—",
+          committeeType:
+            workflow.committee?.type ||
+            COMMITTEE_TYPES.SPECIALIZED,
+          state:
+            workflow.committee?.state ||
+            "QUEUED",
+          priority:
+            workflow.committee?.priority || 1,
+          sessionCode:
+            workflow.committee?.sessionCode || "",
+          sessionDate:
+            workflow.committee?.sessionDate || "",
+          order:
+            workflow.committee?.order || "",
+          workflowApplication:
+            true,
+        };
+      })
+      .filter(Boolean);
+
+    return [
+      ...COMMITTEE_ROWS,
+      ...dynamicRows,
+    ];
+  };
   const initial = useMemo(readState, []);
-  const [rows, setRows] = useState(initial.rows || COMMITTEE_ROWS);
+  const [rows, setRows] = useState(() => {
+    const storedRows =
+      initial.rows || COMMITTEE_ROWS;
+
+    const dynamicRows =
+      buildCommitteeRows().filter(
+        (row) => row.workflowApplication
+      );
+
+    return [
+      ...storedRows,
+      ...dynamicRows,
+    ].filter(
+      (row, index, array) =>
+        array.findIndex(
+          (item) => item.id === row.id
+        ) === index
+    );
+  });
   const [sessions, setSessions] = useState(initial.sessions || []);
   const [selected, setSelected] = useState(null);
   const [activeTab, setActiveTab] = useState("technical");
@@ -199,3 +278,7 @@ function Content() {
 export default function Committees() {
   return <RequirePermission permission={PERMISSIONS.COMMITTEE_VIEW}><Content /></RequirePermission>;
 }
+
+
+
+

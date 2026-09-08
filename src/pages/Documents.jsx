@@ -1,5 +1,5 @@
-﻿import React, { useMemo, useRef, useState } from "react";
-import { useLocation } from "react-router-dom";
+﻿import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
 import { PERMISSIONS } from "../auth/permissions";
 import { RequirePermission } from "../auth/guards";
@@ -12,8 +12,25 @@ import Card from "../components/ui/Card";
 function Content() {
   const { t, language } = useLanguage();
   const location = useLocation();
-  const initialQualification = location.state?.qualificationType || "";
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const applicationId =
+    searchParams.get("applicationId") || "";
+
+  const initialQualification =
+    searchParams.get("qualification") ||
+    location.state?.qualificationType ||
+    "";
   const [qualificationType, setQualificationType] = useState(initialQualification);
+
+  useEffect(() => {
+    setQualificationType(
+      searchParams.get("qualification") ||
+        location.state?.qualificationType ||
+        ""
+    );
+  }, [searchParams, location.state]);
   const [uploadedDocuments, setUploadedDocuments] = useState([]);
   const fileInputRef = useRef(null);
   const [pendingRequirement, setPendingRequirement] = useState(null);
@@ -50,6 +67,12 @@ function Content() {
       description={t("documents.description")}
       icon="document"
       actionLabel={t("documents.upload")}
+      onAction={(row) =>
+        navigate(
+          `/documents?applicationId=${encodeURIComponent(row.id)}&qualification=${encodeURIComponent(row.qualificationKey)}`
+        )
+      }
+
       stats={[
         { label: t("documents.stats.required"), value: requirements.filter((r) => r.required).length },
         { label: t("documents.stats.uploaded"), value: uploadedDocuments.length },
@@ -79,6 +102,11 @@ function Content() {
 export default function Documents() {
   return <RequirePermission permission={PERMISSIONS.DOCUMENT_UPLOAD_OWN}><Content /></RequirePermission>;
 }
+
+
+
+
+
 
 
 

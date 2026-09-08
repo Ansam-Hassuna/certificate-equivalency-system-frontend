@@ -19,6 +19,8 @@ export default function OperationalScreen({
   icon = "document",
   columns,
   actionLabel,
+  onAction,
+  hideActionForArchived = false,
   children,
   stats,
 }) {
@@ -257,9 +259,15 @@ export default function OperationalScreen({
                 {row.status}
               </Badge>
             ) : col.key === "action" ? (
-              <Button variant="ghost" size="sm">
-                {actionLabel || t("common.view")} →
-              </Button>
+              hideActionForArchived && row.archived ? null : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onAction?.(row)}
+                >
+                  {actionLabel || t("common.view")} →
+                </Button>
+              )
             ) : (
               row[col.key]
             )
@@ -269,3 +277,5 @@ export default function OperationalScreen({
     </ScreenShell>
   );
 }
+
+

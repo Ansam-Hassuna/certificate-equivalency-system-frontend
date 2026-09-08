@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+﻿import React, { useMemo, useState } from "react";
 import { useLanguage } from "../context/LanguageContext";
 import { PERMISSIONS } from "../auth/permissions";
 import { RequirePermission } from "../auth/guards";
@@ -9,11 +9,86 @@ import Table from "../components/ui/Table";
 import FilterBar from "../components/ui/FilterBar";
 import { INQUIRY_STATES } from "../config/workflow";
 import { INQUIRY_ROWS } from "./workflow/operationalData";
+import {
+  getWorkflowState,
+  updateInquiry,
+  updateWorkflowState,
+} from "../features/workflow/workflowStore";
+import { getStoredApplications } from "../features/applications/mockApplicationStore";
 import "./workflow/OperationalWorkflow.css";
 
 function Content() {
   const { language } = useLanguage();
-  const [rows, setRows] = useState(INQUIRY_ROWS);
+  const buildRows = () => {
+    const applications =
+      getStoredApplications();
+
+    const dynamicRows = applications.flatMap(
+      (application) => {
+        const workflow =
+          getWorkflowState(application.id);
+
+        let inquiries =
+          Array.isArray(workflow.inquiries)
+            ? workflow.inquiries
+            : [];
+
+        if (
+          inquiries.length === 0 &&
+          workflow.inquiry
+        ) {
+          inquiries = [
+            workflow.inquiry,
+          ];
+        }
+
+        return inquiries.map(
+          (inquiry) => ({
+            id:
+              inquiry.id ||
+              `INQ-${application.id}-${Date.now()}`,
+            requestId:
+              application.id,
+            institution:
+              inquiry.institution ||
+              application.university ||
+              "—",
+            institutionEn:
+              inquiry.institutionEn ||
+              application.universityEn ||
+              "—",
+            subject:
+              inquiry.subject ||
+              "التحقق من صحة الشهادة",
+            subjectEn:
+              inquiry.subjectEn ||
+              "Credential authenticity verification",
+            state:
+              inquiry.state ||
+              INQUIRY_STATES.WAITING_RESPONSE,
+            sentAt:
+              inquiry.sentAt ||
+              application.date,
+            response:
+              inquiry.response,
+            responseEn:
+              inquiry.responseEn,
+            resultOk:
+              inquiry.resultOk,
+            respondedAt:
+              inquiry.respondedAt,
+          })
+        );
+      }
+    );
+
+    return [
+      ...INQUIRY_ROWS,
+      ...dynamicRows,
+    ];
+  };
+
+  const [rows, setRows] = useState(buildRows);
   const [selected, setSelected] = useState(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -26,18 +101,104 @@ function Content() {
   }), [rows]);
 
   const followUp = (id) => {
-    setRows((current) => current.map((row) => row.id === id ? { ...row, state: INQUIRY_STATES.FOLLOW_UP } : row));
+    const row = rows.find(
+      (item) => item.id === id
+    );
+
+    if (row?.requestId) {
+      const workflow =
+        getWorkflowState(row.requestId);
+
+      if (workflow.inquiry) {
+        updateInquiry(
+          row.requestId,
+          row.id,
+          {
+            state:
+              INQUIRY_STATES.FOLLOW_UP,
+          }
+        );
+      }
+    }
+
+    setRows((current) =>
+      current.map((row) =>
+        row.id === id
+          ? {
+              ...row,
+              state:
+                INQUIRY_STATES.FOLLOW_UP,
+            }
+          : row
+      )
+    );
+
     setSelected(null);
   };
 
-  const recordResponse = (id, resultOk) => {
-    setRows((current) => current.map((row) => row.id === id ? {
-      ...row,
-      state: INQUIRY_STATES.RESPONSE_RECEIVED,
-      resultOk,
-      response: resultOk ? "نتيجة الاستفسار سليمة." : "نتيجة الاستفسار غير سليمة وتحتاج الإجراء النظامي المناسب.",
-      responseEn: resultOk ? "The inquiry result is valid." : "The inquiry result is not valid and requires the appropriate procedure.",
-    } : row));
+  const recordResponse = (
+    id,
+    resultOk
+  ) => {
+    const row = rows.find(
+      (item) => item.id === id
+    );
+
+    if (!row?.requestId) {
+      return;
+    }
+
+    const response = resultOk
+      ? "نتيجة الاستفسار سليمة."
+      : "نتيجة الاستفسار غير سليمة وتحتاج إلى الإجراء النظامي المناسب.";
+
+    const responseEn = resultOk
+      ? "The inquiry result is valid."
+      : "The inquiry result is not valid and requires the appropriate procedure.";
+
+    updateInquiry(
+      row.requestId,
+      row.id,
+      {
+        state:
+          INQUIRY_STATES.RESPONSE_RECEIVED,
+        resultOk,
+        response,
+        responseEn,
+        respondedAt:
+          new Date().toISOString(),
+      }
+    );
+
+    updateWorkflowState(
+        row.requestId,
+        {
+          stage: "STUDY",
+          lastAction:
+            "INQUIRY_RESPONSE_RECORDED",
+          lastActionAt:
+            new Date().toISOString(),
+          lastInquiryResult: resultOk
+            ? "OK"
+            : "NOT_OK",
+        }
+      );
+
+    setRows((current) =>
+      current.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              state:
+                INQUIRY_STATES.RESPONSE_RECEIVED,
+              resultOk,
+              response,
+              responseEn,
+            }
+          : item
+      )
+    );
+
     setSelected(null);
   };
 
@@ -101,3 +262,14 @@ function Content() {
 }
 
 export default function Inquiries() { return <RequirePermission permission={PERMISSIONS.MANAGE_INQUIRIES}><Content /></RequirePermission>; }
+
+
+
+
+
+
+
+
+
+
+

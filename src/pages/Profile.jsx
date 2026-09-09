@@ -1,4 +1,4 @@
-﻿import React, { useMemo, useRef, useState } from "react";
+﻿import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../auth/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import Card from "../components/ui/Card";
@@ -11,6 +11,8 @@ import {
   saveApplicantProfile,
 } from "../features/profile/profileStore";
 import "./Profile.css";
+import "react-phone-input-2/lib/style.css";
+import PhoneInput from "react-phone-input-2";
 
 const MAX_IMAGE_SIZE = 2 * 1024 * 1024;
 
@@ -21,59 +23,127 @@ export default function Profile() {
 
   const isArabic = language === "ar";
 
+
+
   const storedProfile = useMemo(
-    () =>
-      getApplicantProfile(user?.id) || {},
+    () => getApplicantProfile(user?.id) || {},
     [user?.id]
   );
+  const [form, setForm] = useState({
+  fullName:
+    user?.displayName ||
+    user?.name ||
+    "",
+  nationalId: "",
+  identityType: "",
+  gender: "",
+  dateOfBirth: "",
+  nationality: "",
+  email: user?.email || "",
+  backupEmail: "",
+  phone: "",
+  whatsapp: "",
+    whatsappCountry:
+      storedProfile.whatsappCountry || "ps",
+  whatsappPrefix:
+    storedProfile.whatsappPrefix || "+970",
+  country: "palestine",
+  city: "",
+  address: "",
+  imageUrl: "",
+});
 
-  const [form, setForm] = useState(() => ({
-    fullName:
-      storedProfile.fullName ||
-      user?.displayName ||
-      user?.name ||
-      "",
-    nationalId:
-      storedProfile.nationalId || "",
-    identityType:
-      storedProfile.identityType || "",
-    gender:
-      storedProfile.gender || "",
-    dateOfBirth:
-      storedProfile.dateOfBirth || "",
-    nationality:
-      storedProfile.nationality || "",
-    email:
-      user?.email ||
-      storedProfile.email ||
-      "",
-    backupEmail:
-      storedProfile.backupEmail || "",
-    phone:
-      storedProfile.phone || "",
-    whatsapp:
-      storedProfile.whatsapp || "",
-    whatsappPrefix:
-      storedProfile.whatsappPrefix || "+970",
-    country:
-      storedProfile.country || "palestine",
-    city:
-      storedProfile.city || "",
-    address:
-      storedProfile.address || "",
-    imageUrl:
-      storedProfile.imageUrl ||
-      user?.imageUrl ||
-      "",
-  }));
+  useEffect(() => {
+  let cancelled = false;
+
+  async function loadProfile() {
+    try {
+      const profile =
+        await getApplicantProfile();
+
+      if (cancelled || !profile) {
+        return;
+      }
+
+      const apiBaseUrl =
+        process.env.REACT_APP_API_BASE_URL;
+
+      setForm((current) => ({
+        ...current,
+
+        fullName:
+          profile.displayName || "",
+
+        nationalId:
+          profile.nationalId || "",
+
+        identityType:
+          profile.identityType || "",
+
+        gender:
+          profile.gender || "",
+
+        dateOfBirth:
+          profile.dateOfBirth || "",
+
+        nationality:
+          profile.nationality || "",
+
+        email:
+          profile.email || "",
+
+        backupEmail:
+          profile.alternativeEmail || "",
+
+        phone:
+          profile.phoneNumber || "",
+
+        whatsapp:
+          profile.whatsAppNumber || "",
+
+        country:
+          profile.country?.toLowerCase() ||
+          "palestine",
+
+        city:
+          profile.city || "",
+
+        address:
+          profile.address || "",
+
+        imageUrl:
+          profile.imageUrl
+            ? `${apiBaseUrl}${profile.imageUrl}`
+            : "",
+      }));
+    } catch (err) {
+      console.error(
+        "Failed to load profile:",
+        err
+      );
+    }
+  }
+
+  loadProfile();
+
+  return () => {
+    cancelled = true;
+  };
+}, []);
 
   const [message, setMessage] =
     useState("");
 
   const [error, setError] =
     useState("");
+  const whatsappCountry =
+    form.whatsappCountry || "ps";
 
-  const countryOptions = [
+  const whatsappValue =
+    `${form.whatsappPrefix || "+970"}${String(form.whatsapp || "")
+      .replace(/\s+/g, "")
+      .replace(/^0/, "")}`;
+const countryOptions = [
     {
       value: "palestine",
       label: isArabic ? "فلسطين" : "Palestine",
@@ -109,16 +179,7 @@ export default function Profile() {
       label: isArabic ? "دولة أخرى" : "Other",
     },
   ];
-  const whatsappPrefixes = {
-    palestine: "+970",
-    jordan: "+962",
-    egypt: "+20",
-    "saudi-arabia": "+966",
-    uae: "+971",
-    turkey: "+90",
-    malaysia: "+60",
-  };
-  const update = (key) => (event) => {
+const update = (key) => (event) => {
     setMessage("");
     setError("");
 
@@ -139,6 +200,7 @@ export default function Profile() {
     "phone",
     "whatsapp",
     "whatsappPrefix",
+    "whatsappCountry",
     "country",
     "city",
     "address",
@@ -161,51 +223,99 @@ export default function Profile() {
     completedFields ===
     requiredFields.length;
 
-  const handleImageChange = (event) => {
-    const file =
-      event.target.files?.[0];
+  const handleImageChange = async (event) => {
+  const file = event.target.files?.[0];
 
-    if (!file) {
-      return;
-    }
+  if (!file) {
+    return;
+  }
 
-    setMessage("");
-    setError("");
+  setMessage("");
+  setError("");
 
-    if (!file.type.startsWith("image/")) {
-      setError(
-        isArabic
-          ? "يرجى اختيار ملف صورة."
-          : "Please select an image file."
-      );
-      event.target.value = "";
-      return;
-    }
-
-    if (file.size > MAX_IMAGE_SIZE) {
-      setError(
-        isArabic
-          ? "حجم الصورة يجب ألا يتجاوز 2 ميجابايت."
-          : "Image size must not exceed 2 MB."
-      );
-      event.target.value = "";
-      return;
-    }
-
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      setForm((current) => ({
-        ...current,
-        imageUrl:
-          String(reader.result || ""),
-      }));
-    };
-
-    reader.readAsDataURL(file);
+  if (!file.type.startsWith("image/")) {
+    setError(
+      isArabic
+        ? "يرجى اختيار ملف صورة."
+        : "Please select an image file."
+    );
 
     event.target.value = "";
-  };
+    return;
+  }
+
+  if (file.size > MAX_IMAGE_SIZE) {
+    setError(
+      isArabic
+        ? "حجم الصورة يجب ألا يتجاوز 2 ميجابايت."
+        : "Image size must not exceed 2 MB."
+    );
+
+    event.target.value = "";
+    return;
+  }
+
+  try {
+    const rawSession =
+      window.sessionStorage.getItem(
+        "ce_auth_session"
+      );
+
+    const session = rawSession
+      ? JSON.parse(rawSession)
+      : null;
+
+    const token = session?.token;
+
+    const formData = new FormData();
+
+    formData.append("file", file);
+
+    const response = await fetch(
+      `${process.env.REACT_APP_API_BASE_URL}/api/Applicants/profile/photo`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        "Failed to upload profile photo"
+      );
+    }
+
+    const data = await response.json();
+
+    setForm((current) => ({
+      ...current,
+      imageUrl:
+        `${process.env.REACT_APP_API_BASE_URL}${data.imageUrl}`,
+    }));
+
+    setMessage(
+      isArabic
+        ? "تم رفع الصورة الشخصية بنجاح."
+        : "Profile picture uploaded successfully."
+    );
+  } catch (err) {
+    console.error(
+      "Failed to upload profile photo:",
+      err
+    );
+
+    setError(
+      isArabic
+        ? "تعذر رفع الصورة الشخصية."
+        : "Unable to upload profile picture."
+    );
+  }
+
+  event.target.value = "";
+};
 
   const removeImage = () => {
     setMessage("");
@@ -217,71 +327,73 @@ export default function Profile() {
     }));
   };
 
-  const save = () => {
-    setMessage("");
-    setError("");
+  const save = async () => {
+  setMessage("");
+  setError("");
 
-    if (!user?.id) {
-      setError(
-        isArabic
-          ? "تعذر تحديد المستخدم الحالي."
-          : "Unable to identify the current user."
-      );
-      return;
-    }
+  if (!user?.id) {
+    setError(
+      isArabic
+        ? "تعذر تحديد المستخدم الحالي."
+        : "Unable to identify the current user."
+    );
+    return;
+  }
 
-    if (!form.imageUrl) {
-      setError(
-        isArabic
-          ? "الصورة الشخصية مطلوبة قبل حفظ الملف الشخصي."
-          : "A profile picture is required before saving the profile."
-      );
-      return;
-    }
+  if (!form.imageUrl) {
+    setError(
+      isArabic
+        ? "الصورة الشخصية مطلوبة قبل حفظ الملف الشخصي."
+        : "A profile picture is required before saving the profile."
+    );
+    return;
+  }
 
-    if (!profileComplete) {
-      setError(
-        isArabic
-          ? "يرجى استكمال جميع البيانات المطلوبة قبل الحفظ."
-          : "Please complete all required fields before saving."
-      );
-      return;
-    }
+  if (!profileComplete) {
+    setError(
+      isArabic
+        ? "يرجى استكمال جميع البيانات المطلوبة قبل الحفظ."
+        : "Please complete all required fields before saving."
+    );
+    return;
+  }
 
-    const profile = {
-      ...form,
-      email: user.email || form.email,
+  try {
+    const profileData = {
+      displayName: form.fullName.trim(),
+      nationalId: form.nationalId,
+      identityType: form.identityType,
+      gender: form.gender,
+      dateOfBirth: form.dateOfBirth,
+      nationality: form.nationality,
+      phoneNumber: form.phone,
+      whatsAppNumber: form.whatsapp,
+      alternativeEmail: form.backupEmail,
+      country: form.country,
+      city: form.city,
+      address: form.address,
     };
 
-    saveApplicantProfile(
-      user.id,
-      profile
-    );
-
-    const result =
-      updateUserProfile({
-        name: form.fullName.trim(),
-        displayName:
-          form.fullName.trim(),
-        imageUrl:
-          form.imageUrl || null,
-      });
-
-    if (!result?.ok) {
-      setError(
-        isArabic
-          ? "تعذر تحديث بيانات الحساب."
-          : "Unable to update account data."
-      );
-      return;
-    }
+    await saveApplicantProfile(profileData);
 
     setMessage(
       isArabic
         ? "تم حفظ الملف الشخصي بنجاح."
         : "Profile saved successfully."
     );
-  };
+  } catch (err) {
+    console.error(
+      "Failed to save profile:",
+      err
+    );
+
+    setError(
+      isArabic
+        ? "تعذر حفظ بيانات الملف الشخصي."
+        : "Unable to save profile data."
+    );
+  }
+};
 
   const profileImage =
     form.imageUrl || null;
@@ -586,71 +698,58 @@ export default function Profile() {
               required
             />
 
-            <div className="profile-whatsapp-field">
+                        <div className="profile-whatsapp-field">
               <span className="profile-whatsapp-label">
                 {isArabic
                   ? "رقم واتساب"
                   : "WhatsApp number"}
               </span>
 
-              <div className="profile-whatsapp-control">
-                <div
-                  className="profile-whatsapp-prefix"
-                  aria-label={
-                    isArabic
-                      ? "مقدمة الدولة"
-                      : "Country code"
-                  }
-                >
-                  <span className="profile-whatsapp-flag">
-                    {form.country === "palestine"
-                      ? "🇵🇸"
-                      : form.country === "jordan"
-                      ? "🇯🇴"
-                      : form.country === "egypt"
-                      ? "🇪🇬"
-                      : form.country === "saudi-arabia"
-                      ? "🇸🇦"
-                      : form.country === "uae"
-                      ? "🇦🇪"
-                      : form.country === "turkey"
-                      ? "🇹🇷"
-                      : form.country === "malaysia"
-                      ? "🇲🇾"
-                      : "🌐"}
-                  </span>
+              <PhoneInput
+                country={whatsappCountry}
+                value={whatsappValue.replace("+", "")}
+                onChange={(value, countryData) => {
+                  const digits = String(value || "")
+                    .replace(/\D/g, "");
 
-                  <strong>
-                    {form.whatsappPrefix || "—"}
-                  </strong>
-                </div>
+                  const dialCode =
+                    countryData?.dialCode ||
+                    String(
+                      form.whatsappPrefix || "+970"
+                    ).replace(/\D/g, "");
 
-                <input
-                  className="profile-whatsapp-input"
-                  type="tel"
-                  value={form.whatsapp}
-                  onChange={update("whatsapp")}
-                  placeholder={
-                    isArabic
-                      ? "59 123 4567"
-                      : "59 123 4567"
-                  }
-                  aria-label={
-                    isArabic
-                      ? "رقم واتساب"
-                      : "WhatsApp number"
-                  }
-                  required
-                />
-              </div>
+                  const localNumber =
+                    digits.startsWith(dialCode)
+                      ? digits.slice(dialCode.length)
+                      : digits;
 
-              <span className="profile-whatsapp-preview">
-                {form.whatsappPrefix || ""}
-                {form.whatsapp
-                  ? ` ${form.whatsapp}`
-                  : ""}
-              </span>
+                  setMessage("");
+                  setError("");
+
+                  setForm((current) => ({
+                    ...current,
+                    whatsappCountry:
+                      countryData?.countryCode ||
+                      current.whatsappCountry ||
+                      "ps",
+                    whatsappPrefix: `+${dialCode}`,
+                    whatsapp: localNumber,
+                  }));
+                }}
+                countryCodeEditable={false}
+                inputProps={{
+                  name: "whatsapp",
+                  required: true,
+                  autoComplete: "tel",
+                }}
+                placeholder={
+                  isArabic
+                    ? "59 123 4567"
+                    : "59 123 4567"
+                }
+              />
             </div>
+
           </div>
 
           <p className="profile-page__hint">
@@ -685,10 +784,7 @@ export default function Profile() {
                 setForm((current) => ({
                   ...current,
                   country: nextCountry,
-                  whatsappPrefix:
-                    whatsappPrefixes[nextCountry] ||
-                    "",
-                }));
+                  }));
               }}
               options={countryOptions}
               placeholder={
@@ -743,6 +839,27 @@ export default function Profile() {
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

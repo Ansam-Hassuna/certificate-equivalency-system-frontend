@@ -491,25 +491,21 @@ const certificateOptions = [
   };
 
   const saveDraft = () => {
-    const payload = {
-      form,
-      uploadedDocuments,
-      step,
-      savedAt: new Date().toISOString(),
-      status: "draft",
-    };
-
-    setWorkflowStage(
-      newApplication.id,
-      "PAYMENT"
-    );
-    sessionStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(payload)
-    );
-
-    setSaved(true);
+  const payload = {
+    form,
+    uploadedDocuments,
+    step,
+    savedAt: new Date().toISOString(),
+    status: "draft",
   };
+
+  sessionStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify(payload)
+  );
+
+  setSaved(true);
+};
 
   const requestUpload = (requirement) => {
     setPendingRequirement(requirement);

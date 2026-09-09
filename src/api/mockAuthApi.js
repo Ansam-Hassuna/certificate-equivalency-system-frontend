@@ -211,47 +211,41 @@ export const authApi = {
   },
 
   async login(email, password) {
-    const normalizedEmail =
-      normalizeEmail(email);
+  const baseUrl =
+    process.env.REACT_APP_API_BASE_URL;
 
-    const user = getUsers().find(
-      (item) =>
-        normalizeEmail(item.email) ===
-        normalizedEmail
+  const response = await fetch(
+    `${baseUrl}/api/Account/login`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email,
+        password,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const error = new Error(
+      "Invalid email or password."
     );
 
-    if (
-      !user ||
-      String(user.password) !==
-        String(password)
-    ) {
-      const error = new Error(
-        "Invalid email or password."
-      );
+    error.status = response.status;
+    error.code =
+      response.status === 401
+        ? "INVALID_CREDENTIALS"
+        : "LOGIN_FAILED";
 
-      error.code =
-        "INVALID_CREDENTIALS";
+    throw error;
+  }
 
-      error.status = 401;
+  const data = await response.json();
 
-      throw error;
-    }
-
-    if (user.active === false) {
-      const error = new Error(
-        "This account is inactive."
-      );
-
-      error.code =
-        "ACCOUNT_INACTIVE";
-
-      error.status = 403;
-
-      throw error;
-    }
-
-    return toSafeUser(user);
-  },
+  return data;
+},
 
   async register(data) {
     const email =

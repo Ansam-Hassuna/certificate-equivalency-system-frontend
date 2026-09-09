@@ -314,3 +314,70 @@
     padding: 0 10px;
   }
 }
+/* =========================
+   WhatsApp - react-phone-input-2
+   ========================= */
+
+.profile-whatsapp-field {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+
+.profile-whatsapp-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.profile-whatsapp-field .react-tel-input {
+  width: 100%;
+  direction: ltr;
+}
+
+.profile-whatsapp-field .react-tel-input .form-control {
+  width: 100%;
+  height: 46px;
+  padding-left: 58px;
+  padding-right: 14px;
+  border: 1px solid var(--color-border, #d8dde3);
+  border-radius: 10px;
+  background: var(--color-surface, #ffffff);
+  color: var(--color-text-primary, #222222);
+  font: inherit;
+  direction: ltr;
+  text-align: left;
+}
+
+.profile-whatsapp-field .react-tel-input .form-control:focus {
+  border-color: var(--color-border-focus, currentColor);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.04);
+}
+
+.profile-whatsapp-field .react-tel-input .flag-dropdown {
+  border: 0;
+  border-right: 1px solid var(--color-border, #d8dde3);
+  border-radius: 10px 0 0 10px;
+  background: var(--color-surface-muted, #f3f5f7);
+}
+
+.profile-whatsapp-field .react-tel-input .selected-flag {
+  width: 50px;
+  height: 46px;
+  padding-left: 12px;
+}
+
+.profile-whatsapp-field .react-tel-input .selected-flag:hover,
+.profile-whatsapp-field .react-tel-input .selected-flag:focus {
+  background: transparent;
+}
+
+@media (max-width: 600px) {
+  .profile-whatsapp-field .react-tel-input .form-control {
+    height: 44px;
+  }
+
+  .profile-whatsapp-field .react-tel-input .selected-flag {
+    height: 44px;
+  }
+}

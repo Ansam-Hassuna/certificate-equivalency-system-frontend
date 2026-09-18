@@ -61,6 +61,7 @@ export default function ApplicationSubmissionFlow() {
   const {
     form,
     setForm,
+    register,
   } = useApplicationForm(initialForm);
   const [uploadedDocuments, setUploadedDocuments] = useState([]);
   const [pendingRequirement, setPendingRequirement] = useState(null);
@@ -934,7 +935,7 @@ const certificateOptions = [
             <span>{language === "ar" ? "التصديق خدمة منفصلة ولا يتم دمجه مع طلب المعادلة." : "Certification is a separate service and is not combined with the equivalency request."}</span>
           </div>
           <div className="application-form-grid">
-            <Select label={language === "ar" ? "نوع الطلب" : "Request type"} value={form.requestType} onChange={update("requestType")} options={[{ value: "equivalency", label: language === "ar" ? "معادلة شهادة" : "Certificate equivalency" }]} required />
+            <Select {...register("requestType")} label={language === "ar" ? "نوع الطلب" : "Request type"} options={[{ value: "equivalency", label: language === "ar" ? "معادلة شهادة" : "Certificate equivalency" }]} required />
 <Select
               label={
                 language === "ar"

@@ -42,6 +42,9 @@ import {
   validateDocuments,
 } from "../data/documentRequirements";
 import { getQualificationOptions } from "../data/qualifications/catalog";
+import { getUniversityOptions } from "../data/qualifications/universities";
+import { getSecondaryBranchOptions } from "../data/qualifications/secondaryBranches";
+import { getSpecializationOptions } from "../data/qualifications/specializations";
 import "./ApplicationSubmissionFlow.css";
 
 const STORAGE_KEY = "certificate-equivalency-application-draft";
@@ -372,56 +375,7 @@ const certificateOptions = [
         option.qualification === form.qualificationType
     );
 
-  const universityOptions = [
-    {
-      value: "birzeit",
-      label:
-        language === "ar"
-          ? "جامعة بيرزيت"
-          : "Birzeit University",
-      country: "palestine",
-    },
-    {
-      value: "an-najah",
-      label:
-        language === "ar"
-          ? "جامعة النجاح الوطنية"
-          : "An-Najah National University",
-      country: "palestine",
-    },
-    {
-      value: "ptuk",
-      label:
-        language === "ar"
-          ? "جامعة فلسطين التقنية – خضوري"
-          : "Palestine Technical University – Kadoorie",
-      country: "palestine",
-    },
-    {
-      value: "jordan",
-      label:
-        language === "ar"
-          ? "الجامعة الأردنية"
-          : "University of Jordan",
-      country: "jordan",
-    },
-    {
-      value: "yarmouk",
-      label:
-        language === "ar"
-          ? "جامعة اليرموك"
-          : "Yarmouk University",
-      country: "jordan",
-    },
-    {
-      value: "cairo",
-      label:
-        language === "ar"
-          ? "جامعة القاهرة"
-          : "Cairo University",
-      country: "egypt",
-    },
-  ];
+  const universityOptions = getUniversityOptions(language);
 
   const secondaryInstitutionOptions = [
     {
@@ -465,52 +419,10 @@ const certificateOptions = [
       country: "egypt",
     },
   ];
+  const secondaryBranchOptions =
+    getSecondaryBranchOptions(language);
 
-  const secondaryBranchOptions = [
-  {
-    value: "scientific",
-    label:
-      language === "ar"
-        ? "الفرع العلمي"
-        : "Scientific",
-  },
-  {
-    value: "literary",
-    label:
-      language === "ar"
-        ? "الفرع الأدبي"
-        : "Literary",
-  },
-  {
-    value: "commercial",
-    label:
-      language === "ar"
-        ? "الفرع التجاري"
-        : "Commercial",
-  },
-  {
-    value: "industrial",
-    label:
-      language === "ar"
-        ? "الفرع الصناعي"
-        : "Industrial",
-  },
-  {
-    value: "agricultural",
-    label:
-      language === "ar"
-        ? "الفرع الزراعي"
-        : "Agricultural",
-  },
-  {
-    value: "religious",
-    label:
-      language === "ar"
-        ? "الفرع الشرعي"
-        : "Religious",
-  },
-];
-const filteredInstitutionOptions = (
+  const filteredInstitutionOptions = (
     form.qualificationType === QUALIFICATION_TYPES.SECONDARY
       ? secondaryInstitutionOptions
       : universityOptions
@@ -519,96 +431,11 @@ const filteredInstitutionOptions = (
       !form.country ||
       institution.country === form.country
   );
-  const specializationsByInstitution = {
-    birzeit: [
-      {
-        value: "computer-science",
-        label: language === "ar" ? "علوم الحاسوب" : "Computer Science",
-      },
-      {
-        value: "software-engineering",
-        label: language === "ar" ? "هندسة البرمجيات" : "Software Engineering",
-      },
-      {
-        value: "business-administration",
-        label: language === "ar" ? "إدارة الأعمال" : "Business Administration",
-      },
-    ],
-
-    "an-najah": [
-      {
-        value: "computer-science",
-        label: language === "ar" ? "علوم الحاسوب" : "Computer Science",
-      },
-      {
-        value: "software-engineering",
-        label: language === "ar" ? "هندسة البرمجيات" : "Software Engineering",
-      },
-      {
-        value: "information-systems",
-        label: language === "ar" ? "نظم المعلومات" : "Information Systems",
-      },
-    ],
-
-    ptuk: [
-      {
-        value: "computer-science",
-        label: language === "ar" ? "علوم الحاسوب" : "Computer Science",
-      },
-      {
-        value: "information-technology",
-        label: language === "ar" ? "تكنولوجيا المعلومات" : "Information Technology",
-      },
-      {
-        value: "software-engineering",
-        label: language === "ar" ? "هندسة البرمجيات" : "Software Engineering",
-      },
-    ],
-
-    jordan: [
-      {
-        value: "computer-science",
-        label: language === "ar" ? "علوم الحاسوب" : "Computer Science",
-      },
-      {
-        value: "information-systems",
-        label: language === "ar" ? "نظم المعلومات" : "Information Systems",
-      },
-      {
-        value: "business-administration",
-        label: language === "ar" ? "إدارة الأعمال" : "Business Administration",
-      },
-    ],
-
-    yarmouk: [
-      {
-        value: "computer-science",
-        label: language === "ar" ? "علوم الحاسوب" : "Computer Science",
-      },
-      {
-        value: "software-engineering",
-        label: language === "ar" ? "هندسة البرمجيات" : "Software Engineering",
-      },
-      {
-        value: "information-technology",
-        label: language === "ar" ? "تكنولوجيا المعلومات" : "Information Technology",
-      },
-    ],
-
-    cairo: [
-      {
-        value: "computer-science",
-        label: language === "ar" ? "علوم الحاسوب" : "Computer Science",
-      },
-      {
-        value: "information-systems",
-        label: language === "ar" ? "نظم المعلومات" : "Information Systems",
-      },
-    ],
-  };
-
   const filteredSpecializationOptions =
-    specializationsByInstitution[form.institution] || [];
+    getSpecializationOptions(
+      form.institution,
+      language
+    );
   const countryOptions = [
     { value: "palestine", label: language === "ar" ? "فلسطين" : "Palestine" },
     { value: "jordan", label: language === "ar" ? "الأردن" : "Jordan" },
@@ -1521,12 +1348,10 @@ const filteredInstitutionOptions = (
                                       })
                                     )
                                   }
-                                  options={
-                                    specializationsByInstitution[
-                                      externalPreviousQualification
-                                        .institution
-                                    ] || []
-                                  }
+                                  options={getSpecializationOptions(
+                                    externalPreviousQualification.institution,
+                                    language
+                                  )}
                                   placeholder={
                                     language === "ar"
                                       ? "اختر التخصص"
@@ -2079,106 +1904,5 @@ options={filteredSpecializationOptions}
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 

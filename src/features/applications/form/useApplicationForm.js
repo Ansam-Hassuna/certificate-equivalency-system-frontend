@@ -31,12 +31,38 @@ export const APPLICATION_STEP_FIELDS = Object.freeze({
 export function useApplicationForm(
   defaultValues = INITIAL_APPLICATION_FORM
 ) {
-  const form = useForm({
+  const formApi = useForm({
     defaultValues,
     resolver: zodResolver(applicationFormSchema),
     mode: "onChange",
     shouldUnregister: false,
   });
+
+  const values = formApi.watch();
+
+  const setForm = (nextValues) => {
+    if (typeof nextValues === "function") {
+      const currentValues = formApi.getValues();
+      const resolvedValues = nextValues(currentValues);
+
+      Object.entries(resolvedValues || {}).forEach(
+        ([fieldName, value]) => {
+          formApi.setValue(fieldName, value, {
+            shouldDirty: true,
+            shouldTouch: false,
+            shouldValidate: false,
+          });
+        }
+      );
+
+      return;
+    }
+
+    formApi.reset({
+      ...INITIAL_APPLICATION_FORM,
+      ...(nextValues || {}),
+    });
+  };
 
   const validateFormStep = async (step) => {
     const schema = applicationStepSchemas[step];
@@ -47,10 +73,12 @@ export function useApplicationForm(
     }
 
     fields.forEach((field) => {
-      form.clearErrors(field);
+      formApi.clearErrors(field);
     });
 
-    const result = schema.safeParse(form.getValues());
+    const result = schema.safeParse(
+      formApi.getValues()
+    );
 
     if (result.success) {
       return true;
@@ -63,7 +91,7 @@ export function useApplicationForm(
         typeof fieldName === "string" &&
         fields.includes(fieldName)
       ) {
-        form.setError(fieldName, {
+        formApi.setError(fieldName, {
           type: "zod",
           message: issue.message,
         });
@@ -74,7 +102,9 @@ export function useApplicationForm(
   };
 
   return {
-    ...form,
+    ...formApi,
+    form: values,
+    setForm,
     validateFormStep,
   };
 }

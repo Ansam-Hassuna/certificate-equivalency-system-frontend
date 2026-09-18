@@ -1,5 +1,9 @@
 ﻿import React, { useEffect, useMemo, useRef, useState } from "react";
-import { INITIAL_APPLICATION_FORM as initialForm, APPLICATION_STEPS as STEPS } from "../features/applications/form/applicationFormModel";
+import {
+  INITIAL_APPLICATION_FORM as initialForm,
+  APPLICATION_STEPS as STEPS,
+} from "../features/applications/form/applicationFormModel";
+import { useApplicationForm } from "../features/applications/form/useApplicationForm";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
@@ -54,7 +58,10 @@ export default function ApplicationSubmissionFlow() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
-  const [form, setForm] = useState(initialForm);
+  const {
+    form,
+    setForm,
+  } = useApplicationForm(initialForm);
   const [uploadedDocuments, setUploadedDocuments] = useState([]);
   const [pendingRequirement, setPendingRequirement] = useState(null);
   const [saved, setSaved] = useState(false);
@@ -1904,5 +1911,4 @@ options={filteredSpecializationOptions}
     </div>
   );
 }
-
 

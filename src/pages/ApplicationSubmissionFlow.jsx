@@ -36,7 +36,12 @@ import { getApplicantProfile } from "../features/profile/profileStore";
 import {
   requiresEquivalencyForCountry,
 } from "../data/legalRules/equivalencyRules";
-import { QUALIFICATION_TYPES, getRequirementsForRequest, validateDocuments } from "../data/documentRequirements";
+import {
+  QUALIFICATION_TYPES,
+  getRequirementsForRequest,
+  validateDocuments,
+} from "../data/documentRequirements";
+import { getQualificationOptions } from "../data/qualifications/catalog";
 import "./ApplicationSubmissionFlow.css";
 
 const STORAGE_KEY = "certificate-equivalency-application-draft";
@@ -628,57 +633,7 @@ const filteredInstitutionOptions = (
       };
     }
   );
-  const qualificationOptions = [
-    {
-      value: QUALIFICATION_TYPES.SECONDARY,
-      label:
-        language === "ar"
-          ? "الثانوية العامة"
-          : "Secondary School Certificate",
-    },
-    {
-      value: QUALIFICATION_TYPES.MEDIUM_DIPLOMA,
-      label:
-        language === "ar"
-          ? "الدبلوم المتوسط"
-          : "Medium Diploma",
-    },
-    {
-      value: QUALIFICATION_TYPES.BACHELOR,
-      label:
-        language === "ar"
-          ? "البكالوريوس"
-          : "Bachelor's Degree",
-    },
-    {
-      value: QUALIFICATION_TYPES.HIGHER_DIPLOMA,
-      label:
-        language === "ar"
-          ? "الدبلوم العالي"
-          : "Higher Diploma",
-    },
-    {
-      value: QUALIFICATION_TYPES.MASTER,
-      label:
-        language === "ar"
-          ? "الماجستير"
-          : "Master's Degree",
-    },
-    {
-      value: QUALIFICATION_TYPES.INTEGRATED_MASTER,
-      label:
-        language === "ar"
-          ? "الماجستير المتكامل"
-          : "Integrated Master's Degree",
-    },
-    {
-      value: QUALIFICATION_TYPES.DOCTORATE,
-      label:
-        language === "ar"
-          ? "الدكتوراه"
-          : "Doctorate",
-    },
-  ];
+  const qualificationOptions = getQualificationOptions(language);
 
   const getQualificationLabel = (value) =>
     qualificationOptions.find((item) => item.value === value)?.label || value || "—";
@@ -2124,6 +2079,8 @@ options={filteredSpecializationOptions}
     </div>
   );
 }
+
+
 
 
 

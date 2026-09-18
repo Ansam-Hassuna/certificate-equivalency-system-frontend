@@ -46,6 +46,15 @@ export const QUALIFICATION_CATALOG = Object.freeze({
     allowsMultiple: true,
   },
 
+  [QUALIFICATION_TYPES.INTEGRATED_MASTER]: {
+    type: QUALIFICATION_TYPES.INTEGRATED_MASTER,
+    level: "integrated_master",
+    labelAr: "الماجستير المتكامل",
+    labelEn: "Integrated Master's Degree",
+    category: "postgraduate",
+    allowsMultiple: true,
+  },
+
   [QUALIFICATION_TYPES.DOCTORATE]: {
     type: QUALIFICATION_TYPES.DOCTORATE,
     level: "doctorate",
@@ -86,3 +95,4 @@ export function getQualificationOptions(
         : item.labelEn,
   }));
 }
+

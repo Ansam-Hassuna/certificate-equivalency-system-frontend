@@ -1,4 +1,5 @@
 ﻿import React, { useEffect, useMemo, useRef, useState } from "react";
+import { INITIAL_APPLICATION_FORM as initialForm, APPLICATION_STEPS as STEPS } from "../features/applications/form/applicationFormModel";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
@@ -40,26 +41,6 @@ import "./ApplicationSubmissionFlow.css";
 
 const STORAGE_KEY = "certificate-equivalency-application-draft";
 
-const initialForm = {
-  requestType: "equivalency",
-  qualificationType: "",
-  secondaryBranch: "",
-  hasInternationalExam: false,
-  fullName: "",
-  nationalId: "",
-  phone: "",
-  email: "",
-  residence: "",
-  certificateName: "",
-  institution: "",
-  country: "",
-  specialization: "",
-  graduationYear: "",
-  notes: "",
-};
-
-const STEPS = ["request", "applicant", "certificate", "documents", "draft", "submit"];
-
 export default function ApplicationSubmissionFlow() {
   const { t, language } = useLanguage();
   const { user } = useAuth();
@@ -74,8 +55,6 @@ export default function ApplicationSubmissionFlow() {
   const [externalPreviousQualification, setExternalPreviousQualification] =
     useState({
       qualificationType: "",
-  secondaryBranch: "",
-  hasInternationalExam: false,
       qualificationTitle: "",
       specialization: "",
       institution: "",
@@ -2145,6 +2124,8 @@ options={filteredSpecializationOptions}
     </div>
   );
 }
+
+
 
 
 

@@ -14,9 +14,6 @@ import { getDeliveryState, isDeliveryCompleted } from "../features/delivery";
 import { getReceivingState, isReceivingCompleted } from "../features/receiving";
 import { getPaymentState, isPaymentConfirmed } from "../features/payments";
 import {
-  requiresEquivalencyForCountry,
-} from "../data/legalRules/equivalencyRules";
-import {
   getWorkflowState,
   updateWorkflowState,
   addInquiry,
@@ -347,15 +344,6 @@ function Content() {
   const isCompletedRequest =
     request.statusKey === "COMPLETED";
 
-  const requiresEquivalency =
-    typeof request.requiresEquivalency === "boolean"
-      ? request.requiresEquivalency
-      : requiresEquivalencyForCountry(
-          request?.form?.country ||
-          request?.country ||
-          ""
-        );
-
   let current;
 
   if (
@@ -371,10 +359,10 @@ function Content() {
     current = WORKFLOW_STAGES.PAYMENT;
   } else if (!receivingCompleted) {
     current = WORKFLOW_STAGES.PAPER_RECEIVING;
-  } else if (requiresEquivalency) {
-    current = WORKFLOW_STAGES.INSTITUTION_VERIFICATION;
   } else {
-    current = WORKFLOW_STAGES.STUDY;
+    current =
+      currentStageByStatus[request.statusKey] ||
+      WORKFLOW_STAGES.STUDY;
   }
 
   const labels = ar
@@ -692,8 +680,7 @@ function Content() {
                 </button>
               )}
 
-              {requiresEquivalency &&
-                canVerifyInstitution && (
+              {canVerifyInstitution && (
                 <button
                   type="button"
                   className="ui-button"
@@ -709,8 +696,7 @@ function Content() {
                 </button>
               )}
 
-              {requiresEquivalency &&
-                canVerifyCredential && (
+              {canVerifyCredential && (
                 <>
                   <button
                     type="button"
@@ -879,12 +865,6 @@ function Content() {
   );
 }
 export default function ApplicationDetails(){return <RequirePermission permissions={[PERMISSIONS.APPLICATION_VIEW_OWN,PERMISSIONS.VIEW_APPLICATIONS]} mode="any"><Content/></RequirePermission>;}
-
-
-
-
-
-
 
 
 

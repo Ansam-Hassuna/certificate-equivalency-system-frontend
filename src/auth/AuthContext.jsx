@@ -9,7 +9,7 @@
 
 import { ROLES, ROLE_PERMISSIONS } from "./roles";
 import { PERMISSIONS } from "./permissions";
-import { authApi } from "../api/mockAuthApi";
+import { authApi, AUTH_MODE,} from "../api/mockAuthApi";
 
 class ApiError extends Error {
   constructor(

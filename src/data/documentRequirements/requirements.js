@@ -1,4 +1,4 @@
-import { QUALIFICATION_TYPES, REQUIREMENT_TYPES } from "./constants";
+﻿import { QUALIFICATION_TYPES, REQUIREMENT_TYPES } from "./constants";
 
 // The checklist images supplied for the project contain general items plus
 // qualification-specific and case-dependent items. Conditional items are
@@ -9,7 +9,7 @@ const general = [
     qualificationTypes: "all",
     type: REQUIREMENT_TYPES.GENERAL,
     required: true,
-    labelAr: "صورة مصدقة عن جواز السفر أو الوثيقة المعتمدة حسب الحالة",
+    labelAr: "ØµÙˆØ±Ø© Ù…ØµØ¯Ù‚Ø© Ø¹Ù† Ø¬ÙˆØ§Ø² Ø§Ù„Ø³ÙØ± Ø£Ùˆ Ø§Ù„ÙˆØ«ÙŠÙ‚Ø© Ø§Ù„Ù…Ø¹ØªÙ…Ø¯Ø© Ø­Ø³Ø¨ Ø§Ù„Ø­Ø§Ù„Ø©",
     labelEn: "Certified copy of the passport or approved identification document, as applicable",
   },
   {
@@ -17,7 +17,7 @@ const general = [
     qualificationTypes: "all",
     type: REQUIREMENT_TYPES.GENERAL,
     required: true,
-    labelAr: "صورة شخصية حديثة",
+    labelAr: "ØµÙˆØ±Ø© Ø´Ø®ØµÙŠØ© Ø­Ø¯ÙŠØ«Ø©",
     labelEn: "Recent personal photograph",
   },
   {
@@ -26,7 +26,7 @@ const general = [
     type: REQUIREMENT_TYPES.CONDITIONAL,
     required: false,
     condition: "usedPassportsDuringStudy",
-    labelAr: "صور جوازات السفر المستخدمة أثناء الدراسة",
+    labelAr: "ØµÙˆØ± Ø¬ÙˆØ§Ø²Ø§Øª Ø§Ù„Ø³ÙØ± Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…Ø© Ø£Ø«Ù†Ø§Ø¡ Ø§Ù„Ø¯Ø±Ø§Ø³Ø©",
     labelEn: "Copies of passports used during the study period",
   },
   {
@@ -35,18 +35,53 @@ const general = [
     type: REQUIREMENT_TYPES.CONDITIONAL,
     required: false,
     condition: "studyEntryExitEvidenceRequired",
-    labelAr: "وثائق تثبت الدخول والإقامة أثناء فترة الدراسة عند طلبها",
+    labelAr: "ÙˆØ«Ø§Ø¦Ù‚ ØªØ«Ø¨Øª Ø§Ù„Ø¯Ø®ÙˆÙ„ ÙˆØ§Ù„Ø¥Ù‚Ø§Ù…Ø© Ø£Ø«Ù†Ø§Ø¡ ÙØªØ±Ø© Ø§Ù„Ø¯Ø±Ø§Ø³Ø© Ø¹Ù†Ø¯ Ø·Ù„Ø¨Ù‡Ø§",
     labelEn: "Documents evidencing entry and residence during the study period when required",
   },
 ];
 
+const localSecondary = [
+  {
+    id: "local-secondary-certificate",
+    qualificationTypes: [QUALIFICATION_TYPES.SECONDARY],
+    type: REQUIREMENT_TYPES.GENERAL,
+    required: true,
+    labelAr: "صورة عن شهادة الثانوية العامة الفلسطينية",
+    labelEn: "Copy of the Palestinian secondary school certificate",
+  },
+  {
+    id: "local-secondary-transcript",
+    qualificationTypes: [QUALIFICATION_TYPES.SECONDARY],
+    type: REQUIREMENT_TYPES.GENERAL,
+    required: true,
+    labelAr: "كشف علامات الثانوية العامة",
+    labelEn: "Secondary school transcript",
+  },
+  {
+    id: "local-secondary-school-document",
+    qualificationTypes: [QUALIFICATION_TYPES.SECONDARY],
+    type: REQUIREMENT_TYPES.GENERAL,
+    required: true,
+    labelAr: "وثيقة مدرسية أو إفادة تخرج",
+    labelEn: "School document or graduation certificate",
+  },
+  {
+    id: "local-secondary-international-exams",
+    qualificationTypes: [QUALIFICATION_TYPES.SECONDARY],
+    type: REQUIREMENT_TYPES.CONDITIONAL,
+    required: false,
+    condition: "hasInternationalExam",
+    labelAr: "وثائق أو نتائج الاختبارات الدولية مثل SAT أو ACT أو AP أو IB حسب الحالة",
+    labelEn: "International examination documents or results such as SAT, ACT, AP or IB, as applicable",
+  },
+];
 const secondary = [
   {
     id: "secondary-certificate",
     qualificationTypes: [QUALIFICATION_TYPES.SECONDARY],
     type: REQUIREMENT_TYPES.GENERAL,
     required: true,
-    labelAr: "صورة مصدقة عن شهادة الثانوية العامة الأجنبية",
+    labelAr: "ØµÙˆØ±Ø© Ù…ØµØ¯Ù‚Ø© Ø¹Ù† Ø´Ù‡Ø§Ø¯Ø© Ø§Ù„Ø«Ø§Ù†ÙˆÙŠØ© Ø§Ù„Ø¹Ø§Ù…Ø© Ø§Ù„Ø£Ø¬Ù†Ø¨ÙŠØ©",
     labelEn: "Certified copy of the foreign secondary school certificate",
   },
   {
@@ -54,7 +89,7 @@ const secondary = [
     qualificationTypes: [QUALIFICATION_TYPES.SECONDARY],
     type: REQUIREMENT_TYPES.GENERAL,
     required: true,
-    labelAr: "كشوف العلامات والوثائق الدراسية المطلوبة للصفوف ذات العلاقة",
+    labelAr: "ÙƒØ´ÙˆÙ Ø§Ù„Ø¹Ù„Ø§Ù…Ø§Øª ÙˆØ§Ù„ÙˆØ«Ø§Ø¦Ù‚ Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠØ© Ø§Ù„Ù…Ø·Ù„ÙˆØ¨Ø© Ù„Ù„ØµÙÙˆÙ Ø°Ø§Øª Ø§Ù„Ø¹Ù„Ø§Ù‚Ø©",
     labelEn: "Required transcripts and academic records for the relevant school years",
   },
   {
@@ -62,7 +97,7 @@ const secondary = [
     qualificationTypes: [QUALIFICATION_TYPES.SECONDARY],
     type: REQUIREMENT_TYPES.GENERAL,
     required: true,
-    labelAr: "وثيقة مصدقة من المدرسة حسب متطلبات القائمة",
+    labelAr: "ÙˆØ«ÙŠÙ‚Ø© Ù…ØµØ¯Ù‚Ø© Ù…Ù† Ø§Ù„Ù…Ø¯Ø±Ø³Ø© Ø­Ø³Ø¨ Ù…ØªØ·Ù„Ø¨Ø§Øª Ø§Ù„Ù‚Ø§Ø¦Ù…Ø©",
     labelEn: "Certified school document as required by the checklist",
   },
   {
@@ -71,7 +106,7 @@ const secondary = [
     type: REQUIREMENT_TYPES.CONDITIONAL,
     required: false,
     condition: "hasInternationalExam",
-    labelAr: "وثائق أو نتائج الاختبارات الدولية مثل SAT أو ACT أو AP أو IB حسب الحالة",
+    labelAr: "ÙˆØ«Ø§Ø¦Ù‚ Ø£Ùˆ Ù†ØªØ§Ø¦Ø¬ Ø§Ù„Ø§Ø®ØªØ¨Ø§Ø±Ø§Øª Ø§Ù„Ø¯ÙˆÙ„ÙŠØ© Ù…Ø«Ù„ SAT Ø£Ùˆ ACT Ø£Ùˆ AP Ø£Ùˆ IB Ø­Ø³Ø¨ Ø§Ù„Ø­Ø§Ù„Ø©",
     labelEn: "International examination documents/results such as SAT, ACT, AP or IB, as applicable",
   },
 ];
@@ -82,7 +117,7 @@ const bachelor = [
     qualificationTypes: [QUALIFICATION_TYPES.BACHELOR],
     type: REQUIREMENT_TYPES.GENERAL,
     required: true,
-    labelAr: "صورة مصدقة عن شهادة البكالوريوس أو ما يعادلها",
+    labelAr: "ØµÙˆØ±Ø© Ù…ØµØ¯Ù‚Ø© Ø¹Ù† Ø´Ù‡Ø§Ø¯Ø© Ø§Ù„Ø¨ÙƒØ§Ù„ÙˆØ±ÙŠÙˆØ³ Ø£Ùˆ Ù…Ø§ ÙŠØ¹Ø§Ø¯Ù„Ù‡Ø§",
     labelEn: "Certified copy of the bachelor's degree or equivalent",
   },
   {
@@ -90,7 +125,7 @@ const bachelor = [
     qualificationTypes: [QUALIFICATION_TYPES.BACHELOR],
     type: REQUIREMENT_TYPES.GENERAL,
     required: true,
-    labelAr: "كشف علامات مصدق للمواد والسنوات الدراسية المطلوبة",
+    labelAr: "ÙƒØ´Ù Ø¹Ù„Ø§Ù…Ø§Øª Ù…ØµØ¯Ù‚ Ù„Ù„Ù…ÙˆØ§Ø¯ ÙˆØ§Ù„Ø³Ù†ÙˆØ§Øª Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠØ© Ø§Ù„Ù…Ø·Ù„ÙˆØ¨Ø©",
     labelEn: "Certified transcript for the required courses and study years",
   },
   {
@@ -99,7 +134,7 @@ const bachelor = [
     type: REQUIREMENT_TYPES.CONDITIONAL,
     required: false,
     condition: "priorQualificationRequired",
-    labelAr: "وثيقة المؤهل السابق المطلوبة حسب الحالة",
+    labelAr: "ÙˆØ«ÙŠÙ‚Ø© Ø§Ù„Ù…Ø¤Ù‡Ù„ Ø§Ù„Ø³Ø§Ø¨Ù‚ Ø§Ù„Ù…Ø·Ù„ÙˆØ¨Ø© Ø­Ø³Ø¨ Ø§Ù„Ø­Ø§Ù„Ø©",
     labelEn: "Prior qualification document required according to the case",
   },
 ];
@@ -110,7 +145,7 @@ const master = [
     qualificationTypes: [QUALIFICATION_TYPES.MASTER],
     type: REQUIREMENT_TYPES.GENERAL,
     required: true,
-    labelAr: "صورة مصدقة عن شهادة الماجستير",
+    labelAr: "ØµÙˆØ±Ø© Ù…ØµØ¯Ù‚Ø© Ø¹Ù† Ø´Ù‡Ø§Ø¯Ø© Ø§Ù„Ù…Ø§Ø¬Ø³ØªÙŠØ±",
     labelEn: "Certified copy of the master's degree",
   },
   {
@@ -118,7 +153,7 @@ const master = [
     qualificationTypes: [QUALIFICATION_TYPES.MASTER],
     type: REQUIREMENT_TYPES.GENERAL,
     required: true,
-    labelAr: "كشف علامات مصدق للماجستير",
+    labelAr: "ÙƒØ´Ù Ø¹Ù„Ø§Ù…Ø§Øª Ù…ØµØ¯Ù‚ Ù„Ù„Ù…Ø§Ø¬Ø³ØªÙŠØ±",
     labelEn: "Certified master's transcript",
   },
   {
@@ -126,7 +161,7 @@ const master = [
     qualificationTypes: [QUALIFICATION_TYPES.MASTER],
     type: REQUIREMENT_TYPES.GENERAL,
     required: true,
-    labelAr: "وثيقة الدرجة العلمية السابقة المطلوبة",
+    labelAr: "ÙˆØ«ÙŠÙ‚Ø© Ø§Ù„Ø¯Ø±Ø¬Ø© Ø§Ù„Ø¹Ù„Ù…ÙŠØ© Ø§Ù„Ø³Ø§Ø¨Ù‚Ø© Ø§Ù„Ù…Ø·Ù„ÙˆØ¨Ø©",
     labelEn: "Required previous degree document",
   },
 ];
@@ -137,7 +172,7 @@ const doctorate = [
     qualificationTypes: [QUALIFICATION_TYPES.DOCTORATE],
     type: REQUIREMENT_TYPES.GENERAL,
     required: true,
-    labelAr: "صورة مصدقة عن شهادة الدكتوراه",
+    labelAr: "ØµÙˆØ±Ø© Ù…ØµØ¯Ù‚Ø© Ø¹Ù† Ø´Ù‡Ø§Ø¯Ø© Ø§Ù„Ø¯ÙƒØªÙˆØ±Ø§Ù‡",
     labelEn: "Certified copy of the doctoral degree",
   },
   {
@@ -145,7 +180,7 @@ const doctorate = [
     qualificationTypes: [QUALIFICATION_TYPES.DOCTORATE],
     type: REQUIREMENT_TYPES.GENERAL,
     required: true,
-    labelAr: "كشف علامات مصدق للدكتوراه",
+    labelAr: "ÙƒØ´Ù Ø¹Ù„Ø§Ù…Ø§Øª Ù…ØµØ¯Ù‚ Ù„Ù„Ø¯ÙƒØªÙˆØ±Ø§Ù‡",
     labelEn: "Certified doctoral transcript",
   },
   {
@@ -153,7 +188,7 @@ const doctorate = [
     qualificationTypes: [QUALIFICATION_TYPES.DOCTORATE],
     type: REQUIREMENT_TYPES.GENERAL,
     required: true,
-    labelAr: "وثائق الدرجات العلمية السابقة المطلوبة",
+    labelAr: "ÙˆØ«Ø§Ø¦Ù‚ Ø§Ù„Ø¯Ø±Ø¬Ø§Øª Ø§Ù„Ø¹Ù„Ù…ÙŠØ© Ø§Ù„Ø³Ø§Ø¨Ù‚Ø© Ø§Ù„Ù…Ø·Ù„ÙˆØ¨Ø©",
     labelEn: "Required previous academic degree documents",
   },
 ];
@@ -165,3 +200,10 @@ export const DOCUMENT_REQUIREMENTS = [
   ...master,
   ...doctorate,
 ];
+
+export const LOCAL_DOCUMENT_REQUIREMENTS = [
+  ...localSecondary,
+];
+
+
+

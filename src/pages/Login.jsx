@@ -111,9 +111,10 @@ function getSafePostLoginPath(user, from) {
     ? from
     : "/dashboard";
 }
-export default function Login() {
+export default function Login() {  
   const navigate = useNavigate();
   const location = useLocation();
+  console.info("FFFFFFFFFFFFFFFFFFFFFFFF");
   const { isAuthenticated, login } = useAuth();
   const { language, t } = useLanguage();
 
@@ -238,6 +239,8 @@ export default function Login() {
         <button className="btn btn-primary secure-submit" type="submit" disabled={locked}>
           {locked ? t("auth.temporarilyLocked") : t("auth.login")}
         </button>
+
+        
 
         <div className="auth-link">
           <span>{t("auth.noAccount")}</span>{" "}

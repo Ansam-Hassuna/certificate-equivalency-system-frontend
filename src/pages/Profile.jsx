@@ -113,7 +113,7 @@ export default function Profile() {
 
         imageUrl:
           profile.imageUrl
-            ? `${apiBaseUrl}${profile.imageUrl}`
+            ? `${process.env.REACT_APP_API_BASE_URL}${profile.imageUrl}`
             : "",
       }));
     } catch (err) {

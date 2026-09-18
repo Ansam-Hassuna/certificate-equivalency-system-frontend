@@ -1,6 +1,10 @@
-﻿import { QUALIFICATION_TYPES } from "../qualifications/constants";
+export const QUALIFICATION_TYPES = {
+  SECONDARY: "secondary",
+  BACHELOR: "bachelor",
+  MASTER: "master",
+  DOCTORATE: "doctorate",
+};
 
-export { QUALIFICATION_TYPES };
 export const REQUIREMENT_TYPES = {
   GENERAL: "general",
   CONDITIONAL: "conditional",
@@ -14,5 +18,3 @@ export const DOCUMENT_STATUS = {
   ACCEPTED: "accepted",
   REJECTED: "rejected",
 };
-
-

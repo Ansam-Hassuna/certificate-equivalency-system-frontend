@@ -43,8 +43,6 @@ const STORAGE_KEY = "certificate-equivalency-application-draft";
 const initialForm = {
   requestType: "equivalency",
   qualificationType: "",
-  secondaryBranch: "",
-  hasInternationalExam: false,
   fullName: "",
   nationalId: "",
   phone: "",
@@ -74,8 +72,6 @@ export default function ApplicationSubmissionFlow() {
   const [externalPreviousQualification, setExternalPreviousQualification] =
     useState({
       qualificationType: "",
-  secondaryBranch: "",
-  hasInternationalExam: false,
       qualificationTitle: "",
       specialization: "",
       institution: "",
@@ -96,22 +92,11 @@ export default function ApplicationSubmissionFlow() {
   const fileInputRef = useRef(null);
 
   const requirements = useMemo(
-    () =>
-      getRequirementsForRequest({
-        qualificationType: form.qualificationType,
-        country: form.country,
-        caseData: {
-          hasInternationalExam:
-            form.hasInternationalExam,
-        },
-      }),
-    [
-      form.qualificationType,
-      form.country,
-      form.hasInternationalExam,
-    ]
+    () => getRequirementsForRequest({ qualificationType: form.qualificationType }),
+    [form.qualificationType]
   );
-const currentQualificationRequiresEquivalency =
+
+  const currentQualificationRequiresEquivalency =
     requiresEquivalencyForCountry(form.country);
 
   const validation = useMemo(
@@ -482,51 +467,7 @@ const certificateOptions = [
     },
   ];
 
-  const secondaryBranchOptions = [
-  {
-    value: "scientific",
-    label:
-      language === "ar"
-        ? "الفرع العلمي"
-        : "Scientific",
-  },
-  {
-    value: "literary",
-    label:
-      language === "ar"
-        ? "الفرع الأدبي"
-        : "Literary",
-  },
-  {
-    value: "commercial",
-    label:
-      language === "ar"
-        ? "الفرع التجاري"
-        : "Commercial",
-  },
-  {
-    value: "industrial",
-    label:
-      language === "ar"
-        ? "الفرع الصناعي"
-        : "Industrial",
-  },
-  {
-    value: "agricultural",
-    label:
-      language === "ar"
-        ? "الفرع الزراعي"
-        : "Agricultural",
-  },
-  {
-    value: "religious",
-    label:
-      language === "ar"
-        ? "الفرع الشرعي"
-        : "Religious",
-  },
-];
-const filteredInstitutionOptions = (
+  const filteredInstitutionOptions = (
     form.qualificationType === QUALIFICATION_TYPES.SECONDARY
       ? secondaryInstitutionOptions
       : universityOptions
@@ -1185,7 +1126,6 @@ const filteredInstitutionOptions = (
                   ...current,
                   qualificationType:
                     nextQualification,
-                secondaryBranch: "",
                   certificateName: "",
                   institution: "",
                   specialization: "",
@@ -1825,33 +1765,6 @@ onChange={(event) => {
               required
             />
 
-            {form.qualificationType === QUALIFICATION_TYPES.SECONDARY && (
-              <Select
-                label={
-                  language === "ar"
-                    ? "فرع الثانوية"
-                    : "Secondary branch"
-                }
-                value={form.secondaryBranch}
-                onChange={(event) => {
-                  setSaved(false);
-
-                  setForm((current) => ({
-                    ...current,
-                    secondaryBranch:
-                      event.target.value,
-                  }));
-                }}
-                options={secondaryBranchOptions}
-                placeholder={
-                  language === "ar"
-                    ? "اختر فرع الثانوية"
-                    : "Select secondary branch"
-                }
-                required
-              />
-            )}
-
             {form.qualificationType !== QUALIFICATION_TYPES.SECONDARY && (
               <SearchableSelect
                 label={
@@ -1920,16 +1833,7 @@ options={filteredSpecializationOptions}
             <strong>{language === "ar" ? "قائمة الوثائق تعتمد على نوع المؤهل." : "The document list depends on the qualification type."}</strong>
             <span>{language === "ar" ? "لا تظهر وثائق ثابتة لكل الطلبات؛ يتم تحديد المتطلبات حسب الطلب والحالة." : "Requirements are determined by the request and case rather than using one fixed list for every application."}</span>
           </div>
-          <DocumentRequirementsList
-            qualificationType={form.qualificationType}
-            country={form.country}
-            caseData={{
-              hasInternationalExam:
-                form.hasInternationalExam,
-            }}
-            uploadedDocuments={uploadedDocuments}
-            onUpload={requestUpload}
-/>
+          <DocumentRequirementsList qualificationType={form.qualificationType} uploadedDocuments={uploadedDocuments} onUpload={requestUpload} />
           <input ref={fileInputRef} type="file" hidden accept="application/pdf,.pdf" onChange={handleFile} />
           <div className="application-flow__validation">
             <Badge tone={validation.valid ? "success" : "warning"}>{validation.valid ? t("newApplication.documentsComplete") : `${validation.missing.length} ${t("newApplication.documentsMissing")}`}</Badge>
@@ -2034,61 +1938,6 @@ options={filteredSpecializationOptions}
               </strong>
             </div>
 
-            {form.qualificationType === QUALIFICATION_TYPES.SECONDARY && (
-  <div>
-    <span>
-      {language === "ar"
-        ? "فرع الثانوية"
-        : "Secondary branch"}
-    </span>
-    <strong>
-      {secondaryBranchOptions.find(
-        (option) =>
-          option.value === form.secondaryBranch
-      )?.label || "—"}
-    </strong>
-  </div>
-)}
-            {form.qualificationType === QUALIFICATION_TYPES.SECONDARY && (
-              <Select
-                label={
-                  language === "ar"
-                    ? "هل لديك اختبار ثانوي دولي؟"
-                    : "Do you have an international secondary exam?"
-                }
-                value={
-                  form.hasInternationalExam
-                    ? "yes"
-                    : "no"
-                }
-                onChange={(event) => {
-                  setSaved(false);
-
-                  setForm((current) => ({
-                    ...current,
-                    hasInternationalExam:
-                      event.target.value === "yes",
-                  }));
-                }}
-                options={[
-                  {
-                    value: "no",
-                    label:
-                      language === "ar"
-                        ? "لا"
-                        : "No",
-                  },
-                  {
-                    value: "yes",
-                    label:
-                      language === "ar"
-                        ? "نعم"
-                        : "Yes",
-                  },
-                ]}
-                required
-              />
-            )}
             {form.qualificationType !== QUALIFICATION_TYPES.SECONDARY && (
               <div>
                 <span>
@@ -2145,18 +1994,6 @@ options={filteredSpecializationOptions}
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

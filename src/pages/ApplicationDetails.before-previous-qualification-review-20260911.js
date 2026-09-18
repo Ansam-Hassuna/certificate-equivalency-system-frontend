@@ -14,17 +14,10 @@ import { getDeliveryState, isDeliveryCompleted } from "../features/delivery";
 import { getReceivingState, isReceivingCompleted } from "../features/receiving";
 import { getPaymentState, isPaymentConfirmed } from "../features/payments";
 import {
-  requiresEquivalencyForCountry,
-} from "../data/legalRules/equivalencyRules";
-import {
   getWorkflowState,
   updateWorkflowState,
   addInquiry,
 } from "../features/workflow/workflowStore";
-import {
-  getStoredPreviousQualifications,
-  saveStoredPreviousQualifications,
-} from "../features/qualifications/previousQualificationStore";
 import "./workflow/OperationalWorkflow.css";
 
 function Content() {
@@ -46,8 +39,6 @@ function Content() {
   );
   const [actionNote, setActionNote] = useState("");
   const [actionError, setActionError] = useState("");
-  const [previousQualificationRevision, setPreviousQualificationRevision] =
-    useState(0);
 
   const localizedRequests = getLocalizedRequestRows(language);
 
@@ -130,54 +121,6 @@ function Content() {
   const canVerifyCredential =
     can(PERMISSIONS.CREDENTIAL_VERIFY);
 
-  const previousQualification =
-    request?.previousQualificationId && request?.ownerUserId
-      ? getStoredPreviousQualifications(
-          request.ownerUserId
-        ).find(
-          (item) =>
-            item?.id ===
-            request.previousQualificationId
-        ) || null
-      : null;
-
-  const updatePreviousQualificationStatus = (
-    nextStatus,
-    verificationNotes = ""
-  ) => {
-    if (!request?.ownerUserId || !previousQualification) {
-      return;
-    }
-
-    const qualifications =
-      getStoredPreviousQualifications(
-        request.ownerUserId
-      );
-
-    const updatedQualifications =
-      qualifications.map((item) =>
-        item?.id === previousQualification.id
-          ? {
-              ...item,
-              status: nextStatus,
-              verificationNotes,
-              verifiedBy:
-                user?.id || null,
-              verifiedAt:
-                new Date().toISOString(),
-            }
-          : item
-      );
-
-    saveStoredPreviousQualifications(
-      request.ownerUserId,
-      updatedQualifications
-    );
-
-    setPreviousQualificationRevision(
-      (current) => current + 1
-    );
-  };
   const canRoute =
     can(PERMISSIONS.ROUTE_APPLICATION);
 
@@ -347,15 +290,6 @@ function Content() {
   const isCompletedRequest =
     request.statusKey === "COMPLETED";
 
-  const requiresEquivalency =
-    typeof request.requiresEquivalency === "boolean"
-      ? request.requiresEquivalency
-      : requiresEquivalencyForCountry(
-          request?.form?.country ||
-          request?.country ||
-          ""
-        );
-
   let current;
 
   if (
@@ -371,10 +305,10 @@ function Content() {
     current = WORKFLOW_STAGES.PAYMENT;
   } else if (!receivingCompleted) {
     current = WORKFLOW_STAGES.PAPER_RECEIVING;
-  } else if (requiresEquivalency) {
-    current = WORKFLOW_STAGES.INSTITUTION_VERIFICATION;
   } else {
-    current = WORKFLOW_STAGES.STUDY;
+    current =
+      currentStageByStatus[request.statusKey] ||
+      WORKFLOW_STAGES.STUDY;
   }
 
   const labels = ar
@@ -488,159 +422,6 @@ function Content() {
             </div>
           </Card>
 
-          {!isApplicant &&
-            canReview &&
-            previousQualification &&
-            (
-              <Card
-                title={
-                  ar
-                    ? "المؤهل السابق المرتبط بالطلب"
-                    : "Previous qualification linked to the request"
-                }
-              >
-                <div className="workflow-detail-grid">
-                  <div>
-                    <span>{ar ? "النوع" : "Type"}</span>
-                    <strong>
-                      {previousQualification.qualificationType || "—"}
-                    </strong>
-                  </div>
-
-                  <div>
-                    <span>{ar ? "اسم المؤهل" : "Qualification title"}</span>
-                    <strong>
-                      {previousQualification.qualificationTitle || "—"}
-                    </strong>
-                  </div>
-
-                  <div>
-                    <span>{ar ? "التخصص" : "Specialization"}</span>
-                    <strong>
-                      {previousQualification.specialization || "—"}
-                    </strong>
-                  </div>
-
-                  <div>
-                    <span>{ar ? "المؤسسة" : "Institution"}</span>
-                    <strong>
-                      {previousQualification.institution || "—"}
-                    </strong>
-                  </div>
-
-                  <div>
-                    <span>{ar ? "الدولة" : "Country"}</span>
-                    <strong>
-                      {previousQualification.country || "—"}
-                    </strong>
-                  </div>
-
-                  <div>
-                    <span>{ar ? "تاريخ التخرج" : "Graduation date"}</span>
-                    <strong>
-                      {previousQualification.graduationDate || "—"}
-                    </strong>
-                  </div>
-
-                  <div>
-                    <span>{ar ? "حالة التحقق" : "Verification status"}</span>
-                    <strong>
-                      <Badge
-                        tone={
-                          previousQualification.status === "verified"
-                            ? "success"
-                            : previousQualification.status === "rejected"
-                            ? "warning"
-                            : "neutral"
-                        }
-                      >
-                        {previousQualification.status === "verified"
-                          ? ar
-                            ? "تم التحقق"
-                            : "Verified"
-                          : previousQualification.status === "rejected"
-                          ? ar
-                            ? "مرفوض"
-                            : "Rejected"
-                          : previousQualification.status === "pending_documents"
-                          ? ar
-                            ? "بانتظار مستندات إضافية"
-                            : "Pending additional documents"
-                          : ar
-                          ? "بانتظار التحقق"
-                          : "Pending verification"}
-                      </Badge>
-                    </strong>
-                  </div>
-                </div>
-
-                {previousQualification.verificationNotes && (
-                  <div
-                    className="workflow-note"
-                    style={{ marginTop: 14 }}
-                  >
-                    <strong>
-                      {ar ? "ملاحظات التحقق" : "Verification notes"}
-                    </strong>
-                    <p>{previousQualification.verificationNotes}</p>
-                  </div>
-                )}
-
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 12,
-                    flexWrap: "wrap",
-                    marginTop: 14,
-                  }}
-                >
-                  <button
-                    type="button"
-                    className="ui-button"
-                    onClick={() =>
-                      updatePreviousQualificationStatus(
-                        "verified",
-                        actionNote.trim()
-                      )
-                    }
-                  >
-                    {ar
-                      ? "تأكيد المؤهل"
-                      : "Verify qualification"}
-                  </button>
-
-                  <button
-                    type="button"
-                    className="ui-button"
-                    onClick={() =>
-                      updatePreviousQualificationStatus(
-                        "pending_documents",
-                        actionNote.trim()
-                      )
-                    }
-                  >
-                    {ar
-                      ? "طلب مستندات إضافية"
-                      : "Request additional documents"}
-                  </button>
-
-                  <button
-                    type="button"
-                    className="ui-button"
-                    onClick={() =>
-                      updatePreviousQualificationStatus(
-                        "rejected",
-                        actionNote.trim()
-                      )
-                    }
-                  >
-                    {ar
-                      ? "رفض المؤهل"
-                      : "Reject qualification"}
-                  </button>
-                </div>
-              </Card>
-            )}
           <Card title={labels.inquiry}>
             <div className="workflow-note">
               <strong>{labels.waiting}</strong>
@@ -692,8 +473,7 @@ function Content() {
                 </button>
               )}
 
-              {requiresEquivalency &&
-                canVerifyInstitution && (
+              {canVerifyInstitution && (
                 <button
                   type="button"
                   className="ui-button"
@@ -709,8 +489,7 @@ function Content() {
                 </button>
               )}
 
-              {requiresEquivalency &&
-                canVerifyCredential && (
+              {canVerifyCredential && (
                 <>
                   <button
                     type="button"
@@ -879,16 +658,6 @@ function Content() {
   );
 }
 export default function ApplicationDetails(){return <RequirePermission permissions={[PERMISSIONS.APPLICATION_VIEW_OWN,PERMISSIONS.VIEW_APPLICATIONS]} mode="any"><Content/></RequirePermission>;}
-
-
-
-
-
-
-
-
-
-
 
 
 

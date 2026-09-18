@@ -5,6 +5,7 @@ import "./DocumentRequirementsList.css";
 
 export default function DocumentRequirementsList({
   qualificationType,
+  country = "",
   caseData = {},
   uploadedDocuments = [],
   onUpload,
@@ -18,6 +19,7 @@ export default function DocumentRequirementsList({
     uploadedCount,
   } = useDocumentRequirements({
     qualificationType,
+    country,
     caseData,
     uploadedDocuments,
   });
@@ -147,3 +149,5 @@ export default function DocumentRequirementsList({
     </section>
   );
 }
+
+

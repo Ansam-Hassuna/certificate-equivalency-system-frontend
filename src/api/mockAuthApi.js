@@ -1,9 +1,17 @@
-﻿import { PERMISSIONS } from "../auth/permissions";
-import { ROLES, ROLE_PERMISSIONS } from "../auth/roles";
+﻿import {
+  PERMISSIONS,
+} from "../auth/permissions";
+
+import {
+  ROLES,
+  ROLE_PERMISSIONS,
+} from "../auth/roles";
 
 const SESSION_KEY = "ce_auth_session";
-const REGISTERED_USERS_KEY = "ce_mock_registered_users";
-const USER_OVERRIDES_KEY = "ce_mock_user_overrides";
+const REGISTERED_USERS_KEY =
+  "ce_mock_registered_users";
+const USER_OVERRIDES_KEY =
+  "ce_mock_user_overrides";
 
 const isBrowser =
   typeof window !== "undefined";
@@ -40,7 +48,8 @@ const DEMO_USERS = [
   {
     id: "mock-user-office",
     email: "office@test.com",
-    displayName: "Higher Education Office Officer",
+    displayName:
+      "Higher Education Office Officer",
     role: ROLES.OFFICE,
     password: "Demo@12345",
   },
@@ -87,8 +96,16 @@ function normalizeEmail(email) {
     .toLowerCase();
 }
 
+function getApiBaseUrl() {
+  return String(
+    process.env.REACT_APP_API_BASE_URL || ""
+  ).replace(/\/+$/, "");
+}
+
 function readRegisteredUsers() {
-  if (!isBrowser) return [];
+  if (!isBrowser) {
+    return [];
+  }
 
   try {
     const value =
@@ -96,14 +113,18 @@ function readRegisteredUsers() {
         REGISTERED_USERS_KEY
       );
 
-    return value ? JSON.parse(value) : [];
+    return value
+      ? JSON.parse(value)
+      : [];
   } catch {
     return [];
   }
 }
 
 function saveRegisteredUsers(users) {
-  if (!isBrowser) return;
+  if (!isBrowser) {
+    return;
+  }
 
   window.sessionStorage.setItem(
     REGISTERED_USERS_KEY,
@@ -112,7 +133,9 @@ function saveRegisteredUsers(users) {
 }
 
 function readUserOverrides() {
-  if (!isBrowser) return {};
+  if (!isBrowser) {
+    return {};
+  }
 
   try {
     const value =
@@ -120,14 +143,20 @@ function readUserOverrides() {
         USER_OVERRIDES_KEY
       );
 
-    return value ? JSON.parse(value) : {};
+    return value
+      ? JSON.parse(value)
+      : {};
   } catch {
     return {};
   }
 }
 
-function saveUserOverrides(overrides) {
-  if (!isBrowser) return;
+function saveUserOverrides(
+  overrides
+) {
+  if (!isBrowser) {
+    return;
+  }
 
   window.sessionStorage.setItem(
     USER_OVERRIDES_KEY,
@@ -136,7 +165,8 @@ function saveUserOverrides(overrides) {
 }
 
 function getUsers() {
-  const overrides = readUserOverrides();
+  const overrides =
+    readUserOverrides();
 
   return [
     ...DEMO_USERS,
@@ -161,7 +191,9 @@ function toSafeUser(user) {
 
   return {
     id: user.id,
-    email: normalizeEmail(user.email),
+    email: normalizeEmail(
+      user.email
+    ),
     displayName:
       user.displayName ||
       user.name ||
@@ -171,21 +203,31 @@ function toSafeUser(user) {
       user.displayName ||
       "",
     role,
+
     imageUrl:
       user.imageUrl || null,
+
     emailVerified:
-      user.emailVerified !== undefined
-        ? Boolean(user.emailVerified)
+      user.emailVerified !==
+      undefined
+        ? Boolean(
+            user.emailVerified
+          )
         : true,
+
     active:
       user.active !== undefined
         ? Boolean(user.active)
         : true,
+
     permissions:
-      Array.isArray(user.permissions) &&
+      Array.isArray(
+        user.permissions
+      ) &&
       user.permissions.length > 0
         ? user.permissions
         : getPermissions(role),
+
     token:
       user.token ||
       `mock-token-${user.id}`,
@@ -193,63 +235,185 @@ function toSafeUser(user) {
 }
 
 export const authApi = {
+  /*
+   * Backend session restoration.
+   *
+   * Do NOT use sessionStorage here.
+   * The Backend owns the refresh-token
+   * cookie and is responsible for
+   * restoring the authenticated user.
+   */
   async session() {
-    if (!isBrowser) return null;
+    if (!isBrowser) {
+      return null;
+    }
+
+    const baseUrl =
+      getApiBaseUrl();
+
+    if (!baseUrl) {
+      console.error(
+        "Backend API URL is not configured."
+      );
+
+      return null;
+    }
 
     try {
-      const stored =
-        window.sessionStorage.getItem(
-          SESSION_KEY
+      const response =
+        await fetch(
+          `${baseUrl}/api/Account/refresh-to-token`,
+          {
+            method: "POST",
+            credentials: "include",
+            headers: {
+              Accept:
+                "application/json",
+            },
+          }
         );
 
-      return stored
-        ? JSON.parse(stored)
-        : null;
-    } catch {
+      /*
+       * Backend returns 204 when
+       * there is no usable refresh token.
+       */
+      if (
+        response.status === 204
+      ) {
+        return null;
+      }
+
+      let data = null;
+
+      try {
+        data =
+          await response.json();
+      } catch {
+        data = null;
+      }
+
+      if (!response.ok) {
+        console.warn(
+          "Backend session restoration failed:",
+          response.status,
+          data
+        );
+
+        return null;
+      }
+
+      return data;
+    } catch (error) {
+      console.error(
+        "Backend session request failed:",
+        error
+      );
+
       return null;
     }
   },
 
-  async login(email, password) {
-  const baseUrl =
-    process.env.REACT_APP_API_BASE_URL;
+  /*
+   * Real Backend login.
+   */
+  async login(
+    email,
+    password
+  ) {
+    const baseUrl =
+      getApiBaseUrl();
 
-  const response = await fetch(
-    `${baseUrl}/api/Account/login`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email,
-        password,
-      }),
+    if (!baseUrl) {
+      const error = new Error(
+        "Backend API URL is not configured."
+      );
+
+      error.code =
+        "API_BASE_URL_MISSING";
+
+      error.status = 0;
+
+      throw error;
     }
-  );
 
-  if (!response.ok) {
-    const error = new Error(
-      "Invalid email or password."
-    );
+    const response =
+      await fetch(
+        `${baseUrl}/api/Account/login`,
+        {
+          method: "POST",
 
-    error.status = response.status;
-    error.code =
-      response.status === 401
-        ? "INVALID_CREDENTIALS"
-        : "LOGIN_FAILED";
+          /*
+           * Required so the browser
+           * can receive/send the
+           * Backend refresh cookie.
+           */
+          credentials: "include",
 
-    throw error;
-  }
+          headers: {
+            "Content-Type":
+              "application/json",
 
-  const data = await response.json();
+            Accept:
+              "application/json",
+          },
 
-  return data;
-},
+          body: JSON.stringify({
+            email:
+              normalizeEmail(email),
+            password,
+          }),
+        }
+      );
 
+    let data = null;
+
+    try {
+      data =
+        await response.json();
+    } catch {
+      data = null;
+    }
+
+    if (!response.ok) {
+      const backendMessage =
+        data?.message ||
+        data?.error ||
+        data?.title ||
+        data?.detail ||
+        "";
+
+      const error =
+        new Error(
+          backendMessage ||
+            `Login failed with status ${response.status}.`
+        );
+
+      error.status =
+        response.status;
+
+      error.code =
+        response.status === 401
+          ? "INVALID_CREDENTIALS"
+          : "LOGIN_FAILED";
+
+      error.response = data;
+
+      throw error;
+    }
+
+    return data;
+  },
+
+  /*
+   * Still local for now.
+   * We can connect registration
+   * to the Backend separately.
+   */
   async register(data) {
     const email =
-      normalizeEmail(data?.email);
+      normalizeEmail(
+        data?.email
+      );
 
     const displayName =
       String(
@@ -259,16 +423,19 @@ export const authApi = {
       ).trim();
 
     const password =
-      String(data?.password || "");
+      String(
+        data?.password || ""
+      );
 
     if (
       !email ||
       !displayName ||
       !password
     ) {
-      const error = new Error(
-        "Invalid registration data."
-      );
+      const error =
+        new Error(
+          "Invalid registration data."
+        );
 
       error.code =
         "INVALID_REGISTRATION_DATA";
@@ -278,16 +445,19 @@ export const authApi = {
       throw error;
     }
 
-    const exists = getUsers().some(
-      (item) =>
-        normalizeEmail(item.email) ===
-        email
-    );
+    const exists =
+      getUsers().some(
+        (item) =>
+          normalizeEmail(
+            item.email
+          ) === email
+      );
 
     if (exists) {
-      const error = new Error(
-        "An account with this email already exists."
-      );
+      const error =
+        new Error(
+          "An account with this email already exists."
+        );
 
       error.code =
         "EMAIL_ALREADY_EXISTS";
@@ -298,8 +468,7 @@ export const authApi = {
     }
 
     const newUser = {
-      id:
-        `mock-user-${Date.now()}`,
+      id: `mock-user-${Date.now()}`,
       email,
       displayName,
       name: displayName,
@@ -316,131 +485,199 @@ export const authApi = {
 
     saveRegisteredUsers(users);
 
-    return toSafeUser(newUser);
+    return toSafeUser(
+      newUser
+    );
   },
 
+  /*
+   * Still local for now.
+   * Backend user management
+   * can be connected separately.
+   */
   async listUsers() {
-    return getUsers().map((user) => ({
-      ...toSafeUser(user),
-      permissions: getPermissions(
-        user.role
-      ),
-    }));
+    return getUsers().map(
+      (user) => ({
+        ...toSafeUser(user),
+
+        permissions:
+          getPermissions(
+            user.role
+          ),
+      })
+    );
   },
 
+  /*
+   * Still local for now.
+   */
   async updateUserRole(
     userId,
     role
   ) {
     if (
       !userId ||
-      !Object.values(ROLES).includes(role)
+      !Object.values(
+        ROLES
+      ).includes(role)
     ) {
-      const error = new Error(
-        "Invalid user or role."
-      );
+      const error =
+        new Error(
+          "Invalid user or role."
+        );
 
-      error.code = "INVALID_USER_ROLE";
+      error.code =
+        "INVALID_USER_ROLE";
+
       error.status = 400;
 
       throw error;
     }
 
-    const users = getUsers();
-    const user = users.find(
-      (item) => item.id === userId
-    );
+    const users =
+      getUsers();
 
-    if (!user) {
-      const error = new Error(
-        "User not found."
+    const user =
+      users.find(
+        (item) =>
+          item.id === userId
       );
 
-      error.code = "USER_NOT_FOUND";
+    if (!user) {
+      const error =
+        new Error(
+          "User not found."
+        );
+
+      error.code =
+        "USER_NOT_FOUND";
+
       error.status = 404;
 
       throw error;
     }
 
-    const overrides = readUserOverrides();
+    const overrides =
+      readUserOverrides();
 
     overrides[userId] = {
-      ...(overrides[userId] || {}),
+      ...(overrides[userId] ||
+        {}),
       role,
-      permissions: getPermissions(role),
+      permissions:
+        getPermissions(role),
     };
 
-    saveUserOverrides(overrides);
+    saveUserOverrides(
+      overrides
+    );
 
     return {
       ...toSafeUser({
         ...user,
         role,
-        permissions: getPermissions(role),
+        permissions:
+          getPermissions(
+            role
+          ),
       }),
-      permissions: getPermissions(role),
+
+      permissions:
+        getPermissions(role),
     };
   },
 
+  /*
+   * Still local for now.
+   */
   async setUserActive(
     userId,
     active
   ) {
     if (!userId) {
-      const error = new Error(
-        "User ID is required."
-      );
+      const error =
+        new Error(
+          "User ID is required."
+        );
 
-      error.code = "USER_ID_REQUIRED";
+      error.code =
+        "USER_ID_REQUIRED";
+
       error.status = 400;
 
       throw error;
     }
 
-    const users = getUsers();
-    const user = users.find(
-      (item) => item.id === userId
-    );
+    const users =
+      getUsers();
 
-    if (!user) {
-      const error = new Error(
-        "User not found."
+    const user =
+      users.find(
+        (item) =>
+          item.id === userId
       );
 
-      error.code = "USER_NOT_FOUND";
+    if (!user) {
+      const error =
+        new Error(
+          "User not found."
+        );
+
+      error.code =
+        "USER_NOT_FOUND";
+
       error.status = 404;
 
       throw error;
     }
 
-    const overrides = readUserOverrides();
+    const overrides =
+      readUserOverrides();
 
     overrides[userId] = {
-      ...(overrides[userId] || {}),
+      ...(overrides[userId] ||
+        {}),
       active: Boolean(active),
     };
 
-    saveUserOverrides(overrides);
+    saveUserOverrides(
+      overrides
+    );
 
     return {
       ...toSafeUser({
         ...user,
         active: Boolean(active),
       }),
-      permissions: getPermissions(
-        user.role
-      ),
+
+      permissions:
+        getPermissions(
+          user.role
+        ),
     };
   },
 
+  /*
+   * Backend refresh.
+   */
   async refresh() {
     return this.session();
   },
 };
 
 export function clearMockAuthData() {
-  if (!isBrowser) return;
+  if (!isBrowser) {
+    return;
+  }
 
+  /*
+   * Backend mode does not use
+   * sessionStorage as the source
+   * of authentication.
+   *
+   * These removals only clean up
+   * old legacy Mock data.
+   */
   window.sessionStorage.removeItem(
     SESSION_KEY
   );
@@ -455,5 +692,3 @@ export function clearMockAuthData() {
 }
 
 export default authApi;
-
-

@@ -1,10 +1,20 @@
-import { useMemo } from "react";
+﻿import { useMemo } from "react";
 import { getRequirementsForRequest, validateDocuments } from "../data/documentRequirements";
 
-export function useDocumentRequirements({ qualificationType, caseData = {}, uploadedDocuments = [] } = {}) {
+export function useDocumentRequirements({
+  qualificationType,
+  country = "",
+  caseData = {},
+  uploadedDocuments = [],
+} = {}) {
   const requirements = useMemo(
-    () => getRequirementsForRequest({ qualificationType, caseData }),
-    [qualificationType, caseData]
+    () =>
+      getRequirementsForRequest({
+        qualificationType,
+        country,
+        caseData,
+      }),
+    [qualificationType, country, caseData]
   );
 
   const validation = useMemo(
@@ -14,3 +24,5 @@ export function useDocumentRequirements({ qualificationType, caseData = {}, uplo
 
   return { requirements, ...validation };
 }
+
+

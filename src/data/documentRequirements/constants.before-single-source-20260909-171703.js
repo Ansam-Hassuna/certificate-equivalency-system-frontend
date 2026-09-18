@@ -1,6 +1,17 @@
-﻿import { QUALIFICATION_TYPES } from "../qualifications/constants";
+﻿export const QUALIFICATION_TYPES = Object.freeze({
+  SECONDARY: "secondary",
 
-export { QUALIFICATION_TYPES };
+  MEDIUM_DIPLOMA: "medium_diploma",
+
+  BACHELOR: "bachelor",
+
+  HIGHER_DIPLOMA: "higher_diploma",
+
+  MASTER: "master",
+
+  DOCTORATE: "doctorate",
+});
+
 export const REQUIREMENT_TYPES = {
   GENERAL: "general",
   CONDITIONAL: "conditional",
@@ -14,5 +25,4 @@ export const DOCUMENT_STATUS = {
   ACCEPTED: "accepted",
   REJECTED: "rejected",
 };
-
 

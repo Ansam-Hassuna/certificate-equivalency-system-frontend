@@ -64,6 +64,7 @@ export default function ApplicationSubmissionFlow() {
     register,
     setValue,
     clearErrors,
+    formState: { errors },
   } = useApplicationForm(initialForm);
   const [uploadedDocuments, setUploadedDocuments] = useState([]);
   const [pendingRequirement, setPendingRequirement] = useState(null);
@@ -1497,7 +1498,7 @@ const certificateOptions = [
       {step === 1 && (
         <Card title={language === "ar" ? "بيانات مقدم الطلب" : "Applicant data"}>
           <div className="application-form-grid">
-            <Input label={t("newApplication.fullName")} value={form.fullName} onChange={update("fullName")} required />
+            <Input {...register("fullName")} label={t("newApplication.fullName")} error={errors.fullName?.message} required />
             <Input label={language === "ar" ? "رقم الهوية" : "National ID"} value={form.nationalId} onChange={update("nationalId")} required />
             <Input label={t("newApplication.phone")} value={form.phone} onChange={update("phone")} required />
             <Input label={t("auth.email")} type="email" value={form.email} onChange={update("email")} required />

@@ -62,6 +62,8 @@ export default function ApplicationSubmissionFlow() {
     form,
     setForm,
     register,
+    setValue,
+    clearErrors,
   } = useApplicationForm(initialForm);
   const [uploadedDocuments, setUploadedDocuments] = useState([]);
   const [pendingRequirement, setPendingRequirement] = useState(null);
@@ -950,17 +952,35 @@ const certificateOptions = [
                 setSaved(false);
                 setUploadedDocuments([]);
 
-                setForm((current) => ({
-                  ...current,
-                  qualificationType:
-                    nextQualification,
-                secondaryBranch: "",
-                  certificateName: "",
-                  institution: "",
-                  specialization: "",
-                  country: "",
-                  graduationYear: "",
-                }));
+                setValue("qualificationType", nextQualification, {
+                  shouldDirty: true,
+                  shouldTouch: true,
+                  shouldValidate: true,
+                });
+
+                [
+                  "secondaryBranch",
+                  "certificateName",
+                  "institution",
+                  "specialization",
+                  "country",
+                  "graduationYear",
+                ].forEach((fieldName) => {
+                  setValue(fieldName, "", {
+                    shouldDirty: true,
+                    shouldTouch: false,
+                    shouldValidate: false,
+                  });
+                });
+
+                clearErrors([
+                  "secondaryBranch",
+                  "certificateName",
+                  "institution",
+                  "specialization",
+                  "country",
+                  "graduationYear",
+                ]);
               }}
               options={qualificationOptions}
               placeholder={

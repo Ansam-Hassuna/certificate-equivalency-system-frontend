@@ -1499,7 +1499,7 @@ const certificateOptions = [
         <Card title={language === "ar" ? "بيانات مقدم الطلب" : "Applicant data"}>
           <div className="application-form-grid">
             <Input {...register("fullName")} label={t("newApplication.fullName")} error={errors.fullName?.message} required />
-            <Input label={language === "ar" ? "رقم الهوية" : "National ID"} value={form.nationalId} onChange={update("nationalId")} required />
+            <Input {...register("nationalId")} label={language === "ar" ? "رقم الهوية" : "National ID"} error={errors.nationalId?.message} required />
             <Input label={t("newApplication.phone")} value={form.phone} onChange={update("phone")} required />
             <Input label={t("auth.email")} type="email" value={form.email} onChange={update("email")} required />
             <Input label={t("newApplication.residence")} value={form.residence} onChange={update("residence")} required />

@@ -1500,7 +1500,7 @@ const certificateOptions = [
           <div className="application-form-grid">
             <Input {...register("fullName")} label={t("newApplication.fullName")} error={errors.fullName?.message} required />
             <Input {...register("nationalId")} label={language === "ar" ? "رقم الهوية" : "National ID"} error={errors.nationalId?.message} required />
-            <Input label={t("newApplication.phone")} value={form.phone} onChange={update("phone")} required />
+            <Input {...register("phone")} label={t("newApplication.phone")} error={errors.phone?.message} required />
             <Input label={t("auth.email")} type="email" value={form.email} onChange={update("email")} required />
             <Input label={t("newApplication.residence")} value={form.residence} onChange={update("residence")} required />
           </div>
@@ -1933,4 +1933,5 @@ options={filteredSpecializationOptions}
     </div>
   );
 }
+
 

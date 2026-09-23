@@ -4,6 +4,7 @@
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -24,6 +25,12 @@ const authApi = Object.freeze({
 
   verifyLoginOtp: (...args) =>
     backendAuthApi.verifyLoginOtp(...args),
+
+  sendOtp: (...args) =>
+    backendAuthApi.sendOtp(...args),
+
+  verifyOtp: (...args) =>
+    backendAuthApi.verifyOtp(...args),
 
   register: (...args) =>
     legacyAuthApi.register(...args),
@@ -48,6 +55,8 @@ const AuthContext = createContext(null);
 
 const SESSION_KEY = "ce_auth_session";
 const PENDING_KEY = "ce_pending_registration";
+const PENDING_REGISTER_OTP_KEY =
+  "ce_pending_register_otp";
 const PENDING_LOGIN_2FA_KEY =
   "ce_pending_login_2fa";
 
@@ -110,6 +119,39 @@ function readPendingRegistration() {
     const value =
       window.sessionStorage.getItem(
         PENDING_KEY
+      );
+
+    if (!value) return null;
+
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+}
+
+function savePendingRegisterOtp(data) {
+  if (!isBrowser) return;
+
+  if (!data) {
+    window.sessionStorage.removeItem(
+      PENDING_REGISTER_OTP_KEY
+    );
+    return;
+  }
+
+  window.sessionStorage.setItem(
+    PENDING_REGISTER_OTP_KEY,
+    JSON.stringify(data)
+  );
+}
+
+function readPendingRegisterOtp() {
+  if (!isBrowser) return null;
+
+  try {
+    const value =
+      window.sessionStorage.getItem(
+        PENDING_REGISTER_OTP_KEY
       );
 
     if (!value) return null;
@@ -364,6 +406,9 @@ export function AuthProvider({
 }) {
   const [user, setUser] =
     useState(() => readSession());
+
+  const pendingRegistrationPasswordRef =
+    useRef("");
 
   const [loading, setLoading] =
     useState(true);
@@ -627,6 +672,143 @@ export function AuthProvider({
         } catch (error) {
           return getAuthError(error);
         }
+      },
+      []
+    );
+
+  const startRegistrationVerification =
+    useCallback(
+      async (data) => {
+        const displayName =
+          String(
+            data?.displayName ||
+            data?.name ||
+            ""
+          ).trim();
+
+        const email =
+          normalizeEmail(
+            data?.email
+          );
+
+        const password =
+          String(
+            data?.password ||
+            ""
+          );
+
+
+        pendingRegistrationPasswordRef.current = password
+
+        if (
+          !displayName ||
+          !email ||
+          !password
+        ) {
+          return {
+            ok: false,
+            reason:
+              "INVALID_REGISTRATION_DATA",
+          };
+        }
+
+        try {
+          await authApi.sendOtp(email);
+
+          savePendingRegisterOtp({
+            displayName,
+            email,
+          });
+
+          return {
+            ok: true,
+            email,
+          };
+        } catch (error) {
+          return getAuthError(error);
+        }
+      },
+      []
+    );
+
+  const verifyRegistrationOtp =
+    useCallback(
+      async (email, otp) => {
+        const pending =
+          readPendingRegisterOtp();
+
+        const normalizedEmail =
+          normalizeEmail(
+            email ||
+              pending?.email
+          );
+
+        const normalizedOtp =
+          String(
+            otp || ""
+          ).trim();
+
+        if (
+          !normalizedEmail ||
+          !/^\d{6}$/.test(
+            normalizedOtp
+          )
+        ) {
+          return {
+            ok: false,
+            reason:
+              "INVALID_OTP",
+          };
+        }
+
+        try {
+          await authApi.verifyOtp(
+            normalizedEmail,
+            normalizedOtp
+          );
+
+          return {
+            ok: true,
+            email:
+              normalizedEmail,
+            displayName:
+              pending?.displayName ||
+              "",
+            emailVerified: true,
+          };
+        } catch (error) {
+          return getAuthError(error);
+        }
+      },
+      []
+    );
+
+  const getPendingRegisterOtp =
+    useCallback(
+      () => {
+        const pending =
+          readPendingRegisterOtp();
+
+        if (!pending) {
+          return null;
+        }
+
+        return {
+          ...pending,
+          password:
+            pendingRegistrationPasswordRef.current,
+        };
+      },
+      []
+    );
+
+  const clearPendingRegisterOtp =
+    useCallback(
+      () => {
+        pendingRegistrationPasswordRef.current =
+          "";
+
+        savePendingRegisterOtp(null);
       },
       []
     );
@@ -924,6 +1106,12 @@ export function AuthProvider({
 
       login,
       verifyLoginOtp,
+
+      startRegistrationVerification,
+      verifyRegistrationOtp,
+      getPendingRegisterOtp,
+      clearPendingRegisterOtp,
+
       register,
       logout,
 
@@ -943,6 +1131,10 @@ export function AuthProvider({
       loading,
       login,
       verifyLoginOtp,
+      startRegistrationVerification,
+      verifyRegistrationOtp,
+      getPendingRegisterOtp,
+      clearPendingRegisterOtp,
       register,
       logout,
       getPendingRegistration,

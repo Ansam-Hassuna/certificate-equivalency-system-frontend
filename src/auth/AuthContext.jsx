@@ -9,7 +9,22 @@
 
 import { ROLES, ROLE_PERMISSIONS } from "./roles";
 import { PERMISSIONS } from "./permissions";
-import { authApi, AUTH_MODE,} from "../api/mockAuthApi";
+import {
+  authApi as legacyAuthApi,
+  AUTH_MODE,
+} from "../api/mockAuthApi";
+import { authApi as backendAuthApi } from "../features/auth/authApi";
+
+const authApi = Object.freeze({
+  session: (...args) =>
+    legacyAuthApi.session(...args),
+
+  login: (...args) =>
+    backendAuthApi.login(...args),
+
+  register: (...args) =>
+    legacyAuthApi.register(...args),
+});
 
 class ApiError extends Error {
   constructor(

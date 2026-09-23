@@ -22,6 +22,9 @@ const authApi = Object.freeze({
   login: (...args) =>
     backendAuthApi.login(...args),
 
+  verifyLoginOtp: (...args) =>
+    backendAuthApi.verifyLoginOtp(...args),
+
   register: (...args) =>
     legacyAuthApi.register(...args),
 });
@@ -45,6 +48,8 @@ const AuthContext = createContext(null);
 
 const SESSION_KEY = "ce_auth_session";
 const PENDING_KEY = "ce_pending_registration";
+const PENDING_LOGIN_2FA_KEY =
+  "ce_pending_login_2fa";
 
 const isBrowser =
   typeof window !== "undefined";
@@ -105,6 +110,39 @@ function readPendingRegistration() {
     const value =
       window.sessionStorage.getItem(
         PENDING_KEY
+      );
+
+    if (!value) return null;
+
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+}
+
+function savePendingLoginTwoFactor(data) {
+  if (!isBrowser) return;
+
+  if (!data) {
+    window.sessionStorage.removeItem(
+      PENDING_LOGIN_2FA_KEY
+    );
+    return;
+  }
+
+  window.sessionStorage.setItem(
+    PENDING_LOGIN_2FA_KEY,
+    JSON.stringify(data)
+  );
+}
+
+function readPendingLoginTwoFactor() {
+  if (!isBrowser) return null;
+
+  try {
+    const value =
+      window.sessionStorage.getItem(
+        PENDING_LOGIN_2FA_KEY
       );
 
     if (!value) return null;
@@ -453,6 +491,25 @@ export function AuthProvider({
               password
             );
 
+          if (
+            payload?.requiresTwoFactor === true
+          ) {
+            savePendingLoginTwoFactor({
+              email: normalizedEmail,
+            });
+
+            return {
+              ok: true,
+              requiresTwoFactor: true,
+              email: normalizedEmail,
+              message:
+                payload.message ||
+                "A verification code has been sent to your email.",
+            };
+          }
+
+          savePendingLoginTwoFactor(null);
+
           const authenticatedUser =
             normalizeUser(payload);
 
@@ -491,6 +548,81 @@ export function AuthProvider({
             ok: true,
             user:
               authenticatedUser,
+          };
+        } catch (error) {
+          return getAuthError(error);
+        }
+      },
+      []
+    );
+
+  const verifyLoginOtp =
+    useCallback(
+      async (
+        email,
+        otp
+      ) => {
+        const pending =
+          readPendingLoginTwoFactor();
+
+        const normalizedEmail =
+          normalizeEmail(
+            email ||
+              pending?.email
+          );
+
+        const normalizedOtp =
+          String(
+            otp || ""
+          ).trim();
+
+        if (
+          !normalizedEmail ||
+          !normalizedOtp
+        ) {
+          return {
+            ok: false,
+            reason:
+              "INVALID_TWO_FACTOR_DATA",
+          };
+        }
+
+        try {
+          const payload =
+            await authApi.verifyLoginOtp(
+              normalizedEmail,
+              normalizedOtp
+            );
+
+          const authenticatedUser =
+            normalizeUser(payload);
+
+          if (!authenticatedUser) {
+            return {
+              ok: false,
+              reason:
+                "INVALID_SERVER_RESPONSE",
+            };
+          }
+
+          setUser(
+            authenticatedUser
+          );
+
+          saveSession(
+            authenticatedUser
+          );
+
+          savePendingLoginTwoFactor(
+            null
+          );
+
+          return {
+            ok: true,
+            user:
+              authenticatedUser,
+            email:
+              normalizedEmail,
           };
         } catch (error) {
           return getAuthError(error);
@@ -752,6 +884,10 @@ export function AuthProvider({
         null
       );
 
+      savePendingLoginTwoFactor(
+        null
+      );
+
       setUser(null);
 
       return {
@@ -764,6 +900,10 @@ export function AuthProvider({
       saveSession(null);
 
       savePendingRegistration(
+        null
+      );
+
+      savePendingLoginTwoFactor(
         null
       );
 
@@ -783,8 +923,13 @@ export function AuthProvider({
         Boolean(user),
 
       login,
+      verifyLoginOtp,
       register,
       logout,
+
+      getPendingLoginTwoFactor:
+        () =>
+          readPendingLoginTwoFactor(),
 
       getPendingRegistration,
       resendVerification,
@@ -797,6 +942,7 @@ export function AuthProvider({
       user,
       loading,
       login,
+      verifyLoginOtp,
       register,
       logout,
       getPendingRegistration,

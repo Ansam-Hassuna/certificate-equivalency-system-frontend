@@ -4,6 +4,7 @@ import Login from "../pages/Login";
 import EquivalencyIntro from "../pages/EquivalencyIntro";
 import Register from "../pages/Register";
 import VerifyEmail from "../pages/VerifyEmail";
+import VerifyLoginOtp from "../pages/VerifyLoginOtp";
 import EmailVerified from "../pages/EmailVerified";
 import Roles from "../pages/Roles";
 import Profile from "../pages/Profile";
@@ -82,6 +83,10 @@ export default function AppRouter() {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/verify-email" element={<VerifyEmail />} />
+      <Route
+        path="/verify-login-otp"
+        element={<VerifyLoginOtp />}
+      />
       <Route path="/verify-email/complete" element={<EmailVerified />} />
       <Route path="/forbidden" element={<Forbidden />} />
       <Route path="/*" element={<RequireAuth><ProtectedLayout /></RequireAuth>} />

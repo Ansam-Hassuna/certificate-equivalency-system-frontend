@@ -158,6 +158,20 @@ export default function Login() {
 
     const result = await login(email, password);
 
+    if (result.requiresTwoFactor === true) {
+      setAttempts(0);
+      setError("");
+
+      navigate("/verify-login-otp", {
+        replace: true,
+        state: {
+          from: location.state?.from || null,
+        },
+      });
+
+      return;
+    }
+
     if (!result.ok) {
       const next = attempts + 1;
 

@@ -12,7 +12,7 @@ const MAX_PASSWORD_LENGTH = 128;
 
 export default function Register() {
   const navigate = useNavigate();
-  const { register } = useAuth();
+  const { startRegistrationVerification } = useAuth();
   const { language, t } = useLanguage();
 
   const [name, setName] = useState("");
@@ -74,11 +74,12 @@ export default function Register() {
     setIsSubmitting(true);
 
     try {
-      const result = await register({
-        name: name.trim(),
-        email: email.trim().toLowerCase(),
-        password,
-      });
+      const result =
+        await startRegistrationVerification({
+          name: name.trim(),
+          email: email.trim().toLowerCase(),
+          password,
+        });
 
       if (!result.ok) {
         if (result.reason === "EMAIL_EXISTS") {
@@ -105,7 +106,7 @@ export default function Register() {
         return;
       }
 
-      navigate("/verify-email", { replace: true });
+      navigate("/verify-register-otp", { replace: true });
     } catch {
       setError(
         isArabic
@@ -295,8 +296,8 @@ export default function Register() {
         >
           {isSubmitting
             ? isArabic
-              ? "جارٍ إنشاء الحساب..."
-              : "Creating account..."
+              ? "جارٍ إرسال رمز التحقق..."
+              : "Sending verification code..."
             : t("auth.register")}
         </button>
 

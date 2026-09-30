@@ -99,6 +99,25 @@ export const authApi = Object.freeze({
     );
   },
 
+  async register(data) {
+    return postJson(
+      "/api/Account/register",
+      {
+        displayName: String(
+          data?.displayName ||
+          data?.name ||
+          ""
+        ).trim(),
+        email: normalizeEmail(
+          data?.email
+        ),
+        password: String(
+          data?.password ||
+          ""
+        ),
+      }
+    );
+  },
   async login(email, password) {
     return postJson(
       "/api/Account/login",

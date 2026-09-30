@@ -1,4 +1,4 @@
-﻿import React, {
+import React, {
   createContext,
   useCallback,
   useContext,
@@ -32,7 +32,13 @@ const authApi = Object.freeze({
   verifyOtp: (...args) =>
     backendAuthApi.verifyOtp(...args),
 
-  register: (...args) =>
+
+  forgotPassword: (...args) =>
+    backendAuthApi.forgotPassword(...args),
+
+  resetPassword: (...args) =>
+    backendAuthApi.resetPassword(...args),
+ register: (...args) =>
     legacyAuthApi.register(...args),
 });
 
@@ -1096,6 +1102,86 @@ export function AuthProvider({
       };
     }, []);
 
+  const forgotPassword =
+    useCallback(
+      async (email) => {
+        const normalizedEmail =
+          normalizeEmail(email);
+
+        if (!normalizedEmail) {
+          return {
+            ok: false,
+            reason: "INVALID_EMAIL",
+          };
+        }
+
+        try {
+          const payload =
+            await authApi.forgotPassword(
+              normalizedEmail
+            );
+
+          return {
+            ok: true,
+            message:
+              payload?.message ||
+              "If the email exists, a password reset link has been sent.",
+          };
+        } catch (error) {
+          return getAuthError(error);
+        }
+      },
+      []
+    );
+
+  const resetPassword =
+    useCallback(
+      async (
+        email,
+        token,
+        newPassword
+      ) => {
+        const normalizedEmail =
+          normalizeEmail(email);
+
+        const normalizedToken =
+          String(token || "").trim();
+
+        const password =
+          String(newPassword || "");
+
+        if (
+          !normalizedEmail ||
+          !normalizedToken ||
+          !password
+        ) {
+          return {
+            ok: false,
+            reason:
+              "INVALID_RESET_DATA",
+          };
+        }
+
+        try {
+          const payload =
+            await authApi.resetPassword(
+              normalizedEmail,
+              normalizedToken,
+              password
+            );
+
+          return {
+            ok: true,
+            message:
+              payload?.message ||
+              "Password has been reset successfully.",
+          };
+        } catch (error) {
+          return getAuthError(error);
+        }
+      },
+      []
+    );
   const value = useMemo(
     () => ({
       user,
@@ -1106,6 +1192,9 @@ export function AuthProvider({
 
       login,
       verifyLoginOtp,
+
+      forgotPassword,
+      resetPassword,
 
       startRegistrationVerification,
       verifyRegistrationOtp,
@@ -1131,6 +1220,9 @@ export function AuthProvider({
       loading,
       login,
       verifyLoginOtp,
+      forgotPassword,
+      resetPassword,
+
       startRegistrationVerification,
       verifyRegistrationOtp,
       getPendingRegisterOtp,

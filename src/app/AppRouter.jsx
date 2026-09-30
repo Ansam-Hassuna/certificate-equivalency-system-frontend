@@ -1,10 +1,13 @@
 ﻿import React from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import Login from "../pages/Login";
+import ForgotPassword from "../pages/ForgotPassword";
+import ResetPassword from "../pages/ResetPassword";
 import EquivalencyIntro from "../pages/EquivalencyIntro";
 import Register from "../pages/Register";
 import VerifyEmail from "../pages/VerifyEmail";
 import VerifyLoginOtp from "../pages/VerifyLoginOtp";
+import VerifyRegisterOtp from "../pages/VerifyRegisterOtp";
 import EmailVerified from "../pages/EmailVerified";
 import Roles from "../pages/Roles";
 import Profile from "../pages/Profile";
@@ -81,11 +84,17 @@ export default function AppRouter() {
       <Route path="/application-steps" element={<ApplicationSteps />} />
       <Route path="/faq" element={<FAQ />} />
       <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/register" element={<Register />} />
       <Route path="/verify-email" element={<VerifyEmail />} />
       <Route
         path="/verify-login-otp"
         element={<VerifyLoginOtp />}
+      />
+      <Route
+        path="/verify-register-otp"
+        element={<VerifyRegisterOtp />}
       />
       <Route path="/verify-email/complete" element={<EmailVerified />} />
       <Route path="/forbidden" element={<Forbidden />} />

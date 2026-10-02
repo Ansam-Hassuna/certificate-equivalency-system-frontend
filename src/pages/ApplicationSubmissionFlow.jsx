@@ -15,7 +15,6 @@ import Textarea from "../components/ui/Textarea";
 import Button from "../components/ui/Button";
 import Badge from "../components/ui/Badge";
 import Icon from "../components/ui/Icon";
-import DocumentRequirementsList from "../components/documents/DocumentRequirementsList";
 import {
   createMockApplication,
   getStoredApplications,
@@ -51,6 +50,22 @@ import { getSecondaryBranchOptions } from "../data/qualifications/secondaryBranc
 import { getSpecializationOptions } from "../data/qualifications/specializations";
 import "./ApplicationSubmissionFlow.css";
 
+
+import {
+  createApplicationDraft,
+  completeApplicationStep2,
+  completeApplicationStep3,
+  getRequiredDocuments,
+  uploadApplicationDocument,
+  completeApplicationStep4,
+  getApplicationReview,
+  submitApplication,
+  getCountries,
+  getInstitutions,
+  getMajors,
+} from "../api/applicationApi";
+
+
 const STORAGE_KEY = "certificate-equivalency-application-draft";
 
 export default function ApplicationSubmissionFlow() {
@@ -70,7 +85,15 @@ export default function ApplicationSubmissionFlow() {
   const [pendingRequirement, setPendingRequirement] = useState(null);
   const [saved, setSaved] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-    const [previousQualificationId, setPreviousQualificationId] = useState("");
+  const [applicationId, setApplicationId] = useState(null);
+  const [apiLoading, setApiLoading] = useState(false);
+  const [apiError, setApiError] = useState("");
+  const [backendCountries, setBackendCountries] = useState([]);
+  const [backendInstitutions, setBackendInstitutions] = useState([]);
+  const [backendMajors, setBackendMajors] = useState([]);
+  const [backendRequiredDocuments, setBackendRequiredDocuments] = useState([]);
+  const [applicationReview, setApplicationReview] = useState(null);
+  const [previousQualificationId, setPreviousQualificationId] = useState("");
   const [externalPreviousQualification, setExternalPreviousQualification] =
     useState({
       qualificationType: "",
@@ -232,6 +255,10 @@ const currentQualificationRequiresEquivalency =
           : ""
       );
 
+      if (Number.isInteger(payload.applicationId)) {
+        setApplicationId(payload.applicationId);
+      }
+
       if (Number.isInteger(payload.step)) {
         setStep(
           Math.min(
@@ -344,6 +371,135 @@ const currentQualificationRequiresEquivalency =
   }, [user]);
 
 
+  useEffect(() => {
+    let active = true;
+
+    const loadCountries = async () => {
+      try {
+        const data = await getCountries();
+
+        if (!active) return;
+
+        setBackendCountries(
+          Array.isArray(data)
+            ? data.map((item) => ({
+                value: String(item.id),
+                label:
+                  language === "ar"
+                    ? item.name
+                    : item.nameEn || item.name,
+              }))
+            : []
+        );
+      } catch (error) {
+        console.error("Failed to load countries:", error);
+
+        if (active) {
+          setBackendCountries([]);
+        }
+      }
+    };
+
+    loadCountries();
+
+    return () => {
+      active = false;
+    };
+  }, [language]);
+
+  useEffect(() => {
+    let active = true;
+
+    if (!form.country || Number.isNaN(Number(form.country))) {
+      setBackendInstitutions([]);
+      return undefined;
+    }
+
+    const loadInstitutions = async () => {
+      try {
+        const data = await getInstitutions(
+          Number(form.country),
+          form.qualificationType
+        );
+
+        if (!active) return;
+
+        setBackendInstitutions(
+          Array.isArray(data)
+            ? data
+                .filter((item) => item.isActive !== false)
+                .map((item) => ({
+                  value: String(item.id),
+                  label:
+                    language === "ar"
+                      ? item.name
+                      : item.nameEn || item.name,
+                }))
+            : []
+        );
+      } catch (error) {
+        console.error("Failed to load institutions:", error);
+
+        if (active) {
+          setBackendInstitutions([]);
+        }
+      }
+    };
+
+    loadInstitutions();
+
+    return () => {
+      active = false;
+    };
+  }, [form.country, form.qualificationType, language]);
+
+  useEffect(() => {
+    let active = true;
+
+    if (!form.institution || Number.isNaN(Number(form.institution))) {
+      setBackendMajors([]);
+      return undefined;
+    }
+
+    const loadMajors = async () => {
+      try {
+        const data = await getMajors(
+          Number(form.institution),
+          form.qualificationType
+        );
+
+        if (!active) return;
+
+        setBackendMajors(
+          Array.isArray(data)
+            ? data
+                .filter((item) => item.isActive !== false)
+                .map((item) => ({
+                  value: String(item.id),
+                  label:
+                    language === "ar"
+                      ? item.name
+                      : item.nameEn || item.name,
+                }))
+            : []
+        );
+      } catch (error) {
+        console.error("Failed to load majors:", error);
+
+        if (active) {
+          setBackendMajors([]);
+        }
+      }
+    };
+
+    loadMajors();
+
+    return () => {
+      active = false;
+    };
+  }, [form.institution, form.qualificationType, language]);
+
+
 const certificateOptions = [
     {
       value: QUALIFICATION_TYPES.SECONDARY,
@@ -431,7 +587,7 @@ const certificateOptions = [
     },
   ];
   const secondaryBranchOptions =
-    getSecondaryBranchOptions(language);
+  getSecondaryBranchOptions(language);
 
   const filteredInstitutionOptions = (
     form.qualificationType === QUALIFICATION_TYPES.SECONDARY
@@ -458,6 +614,38 @@ const certificateOptions = [
     { value: "other", label: language === "ar" ? "دولة أخرى" : "Other" },
   ];
 
+  const applicationCountryOptions = backendCountries;
+  const applicationInstitutionOptions = backendInstitutions;
+  const applicationMajorOptions = backendMajors;
+
+  const backendDocumentLabelsAr = {
+    1: "صورة شخصية حديثة",
+    2: "جواز سفر أو وثيقة هوية معتمدة",
+    3: "شهادة البكالوريوس أو ما يعادلها",
+    4: "كشف العلامات للمواد والسنوات الدراسية",
+  };
+
+  const uploadedBackendDocumentTypes = new Set(
+    uploadedDocuments
+      .filter((item) => item?.status === "uploaded")
+      .map((item) => Number(item.documentType))
+  );
+
+  const requiredBackendDocumentTypes = backendRequiredDocuments
+    .filter((item) => item.required !== false)
+    .map((item) => Number(item.documentType));
+
+  const missingBackendDocuments = backendRequiredDocuments.filter(
+    (item) =>
+      item.required !== false &&
+      !uploadedBackendDocumentTypes.has(Number(item.documentType))
+  );
+
+  const backendDocumentsValid =
+    requiredBackendDocumentTypes.length > 0 &&
+    missingBackendDocuments.length === 0;
+
+
   const currentYear = new Date().getFullYear();
 
   const graduationYearOptions = Array.from(
@@ -479,65 +667,111 @@ const certificateOptions = [
   const getCertificateLabel = (value) =>
     certificateOptions.find((item) => item.value === value)?.label || value || "—";
 
-  const getInstitutionLabel = (value) => {
-    const allInstitutionOptions = [
-      ...universityOptions,
-      ...secondaryInstitutionOptions,
-    ];
-
-    return (
-      allInstitutionOptions.find((item) => item.value === value)?.label ||
-      value ||
-      "—"
-    );
-  };
+  const getInstitutionLabel = (value) =>
+    applicationInstitutionOptions.find(
+      (item) => item.value === String(value)
+    )?.label ||
+    universityOptions.find((item) => item.value === value)?.label ||
+    secondaryInstitutionOptions.find((item) => item.value === value)?.label ||
+    value ||
+    "—";
 
   const getCountryLabel = (value) =>
-    countryOptions.find((item) => item.value === value)?.label || value || "—";
+    applicationCountryOptions.find(
+      (item) => item.value === String(value)
+    )?.label ||
+    countryOptions.find((item) => item.value === value)?.label ||
+    value ||
+    "—";
 
   const getSpecializationLabel = (value) =>
-    filteredSpecializationOptions.find((item) => item.value === value)?.label || value || "—";
+    applicationMajorOptions.find(
+      (item) => item.value === String(value)
+    )?.label ||
+    getSpecializationOptions(form.institution, language).find(
+      (item) => item.value === value
+    )?.label ||
+    value ||
+    "—";
   const update = (key) => (event) => {
     setSaved(false);
     setForm((current) => ({ ...current, [key]: event.target.value }));
   };
 
-  const saveDraft = () => {
-  const payload = {
-    form,
-    previousQualificationId,
-    uploadedDocuments,
-    step,
-    savedAt: new Date().toISOString(),
-    status: "draft",
+  const saveDraft = (overrideApplicationId = applicationId) => {
+    const payload = {
+      form,
+      applicationId: overrideApplicationId,
+      previousQualificationId,
+      uploadedDocuments,
+      step,
+      savedAt: new Date().toISOString(),
+      status: "draft",
+    };
+
+    sessionStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify(payload)
+    );
+
+    setSaved(true);
   };
-
-  sessionStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify(payload)
-  );
-
-  setSaved(true);
-};
 
   const requestUpload = (requirement) => {
     setPendingRequirement(requirement);
     fileInputRef.current?.click();
   };
 
-  const handleFile = (event) => {
+  const handleFile = async (event) => {
     const file = event.target.files?.[0];
-    if (!file || !pendingRequirement) return;
+
+    if (!file || !pendingRequirement || !applicationId) {
+      event.target.value = "";
+      return;
+    }
+
     setSaved(false);
-    setUploadedDocuments((current) => [
-      ...current.filter((item) => item.requirementId !== pendingRequirement.id),
-      {
-        requirementId: pendingRequirement.id,
-        fileName: file.name,
-        status: "uploaded",
-      },
-    ]);
-    event.target.value = "";
+    setApiError("");
+    setApiLoading(true);
+
+    try {
+      const result = await uploadApplicationDocument(
+        applicationId,
+        pendingRequirement.documentType,
+        file
+      );
+
+      setUploadedDocuments((current) => [
+        ...current.filter(
+          (item) =>
+            Number(item.documentType) !==
+            Number(pendingRequirement.documentType)
+        ),
+        {
+          requirementId: String(pendingRequirement.documentType),
+          documentType: pendingRequirement.documentType,
+          documentId: result.documentId,
+          fileName: result.fileName || file.name,
+          url: result.url,
+          uploadedAt: result.uploadedAt,
+          status: "uploaded",
+        },
+      ]);
+
+      setPendingRequirement(null);
+    } catch (error) {
+      console.error("Document upload error:", error);
+
+      setApiError(
+        error.message ||
+          (language === "ar"
+            ? "تعذر رفع الوثيقة."
+            : "Unable to upload the document.")
+      );
+    } finally {
+      setApiLoading(false);
+      event.target.value = "";
+    }
   };
 
   const canProvideExternalPreviousQualification =
@@ -641,29 +875,207 @@ const certificateOptions = [
       );
 
       if (form.qualificationType === QUALIFICATION_TYPES.SECONDARY) {
-        return baseValid;
+        return Boolean(baseValid && form.secondaryBranch);
       }
 
       return Boolean(baseValid && form.specialization);
     }
-    if (step === 3) return validation.valid;
+    if (step === 3) return backendDocumentsValid;
     return true;
   };
 
-  const next = () => {
+  const next = async () => {
     if (!validateStep()) return;
-    saveDraft();
-    setStep((current) => Math.min(current + 1, STEPS.length - 1));
+
+    setApiError("");
+    setApiLoading(true);
+
+    try {
+      let workingApplicationId = applicationId;
+
+      if (step === 0) {
+        if (!workingApplicationId) {
+          const result = await createApplicationDraft(
+            form.qualificationType
+          );
+
+          workingApplicationId = result.id;
+          setApplicationId(result.id);
+        }
+      }
+
+      if (step === 1) {
+        if (!workingApplicationId) {
+          throw new Error(
+            language === "ar"
+              ? "لم يتم إنشاء الطلب بعد."
+              : "The application has not been created yet."
+          );
+        }
+
+        const result = await completeApplicationStep2(
+          workingApplicationId
+        );
+
+        if (result?.isProfileComplete === false) {
+          const missing =
+            Array.isArray(result.missingFields) &&
+            result.missingFields.length > 0
+              ? `: ${result.missingFields.join(", ")}`
+              : "";
+
+          throw new Error(
+            language === "ar"
+              ? `بيانات الملف الشخصي غير مكتملة${missing}`
+              : `Applicant profile is incomplete${missing}`
+          );
+        }
+      }
+
+      if (step === 2) {
+        if (!workingApplicationId) {
+          throw new Error(
+            language === "ar"
+              ? "لم يتم إنشاء الطلب بعد."
+              : "The application has not been created yet."
+          );
+        }
+
+        const selectedMajorId =
+          form.qualificationType === QUALIFICATION_TYPES.SECONDARY
+            ? form.secondaryBranch
+            : form.specialization;
+
+        if (
+          !form.country ||
+          !form.institution ||
+          !selectedMajorId
+        ) {
+          throw new Error(
+            language === "ar"
+              ? form.qualificationType === QUALIFICATION_TYPES.SECONDARY
+                ? "اختر الدولة والمدرسة وفرع الثانوية من البيانات القادمة من النظام."
+                : "اختر الدولة والمؤسسة والتخصص من البيانات القادمة من النظام."
+              : "Select the country, institution, and major from the system data."
+          );
+        }
+
+        await completeApplicationStep3(
+          workingApplicationId,
+          {
+            countryId: Number(form.country),
+            institutionId: Number(form.institution),
+            majorId: Number(selectedMajorId),
+            graduationYear: Number(form.graduationYear),
+            additionalNotes: form.notes || null,
+          }
+        );
+
+        const requiredDocuments =
+          await getRequiredDocuments(workingApplicationId);
+
+        setBackendRequiredDocuments(
+          Array.isArray(requiredDocuments)
+            ? requiredDocuments
+            : []
+        );
+      }
+
+      if (step === 3) {
+        if (!workingApplicationId) {
+          throw new Error(
+            language === "ar"
+              ? "لم يتم إنشاء الطلب بعد."
+              : "The application has not been created yet."
+          );
+        }
+
+        await completeApplicationStep4(
+          workingApplicationId
+        );
+      }
+
+      if (step === 4) {
+        if (!workingApplicationId) {
+          throw new Error(
+            language === "ar"
+              ? "لم يتم إنشاء الطلب بعد."
+              : "The application has not been created yet."
+          );
+        }
+
+        const review =
+          await getApplicationReview(
+            workingApplicationId
+          );
+
+        setApplicationReview(review);
+      }
+
+      saveDraft(workingApplicationId);
+
+      setStep((current) =>
+        Math.min(
+          current + 1,
+          STEPS.length - 1
+        )
+      );
+    } catch (error) {
+      console.error(
+        "Application API error:",
+        error
+      );
+
+      setApiError(
+        error.message ||
+          (language === "ar"
+            ? "تعذر متابعة الطلب."
+            : "Unable to continue the application.")
+      );
+    } finally {
+      setApiLoading(false);
+    }
   };
 
   const previous = () => setStep((current) => Math.max(current - 1, 0));
 
-  const submit = () => {
-    if (!validateStep()) return;
+  const submit = async () => {
+    if (!validateStep() || !applicationId) return;
 
-    const requestId = `REQ-${Date.now()
-      .toString()
-      .slice(-6)}`;
+    setApiError("");
+    setApiLoading(true);
+
+    let submissionResult;
+
+    try {
+      submissionResult =
+        await submitApplication(
+          applicationId
+        );
+    } catch (error) {
+      console.error(
+        "Submit application error:",
+        error
+      );
+
+      setApiError(
+        error.message ||
+          (language === "ar"
+            ? "تعذر تقديم الطلب."
+            : "Unable to submit the application.")
+      );
+
+      setApiLoading(false);
+      return;
+    }
+
+    setApiLoading(false);
+
+    const requestId =
+      String(
+        submissionResult?.applicationId ||
+          applicationId
+      );
 
     const qualificationLabel =
       getQualificationLabel(
@@ -870,9 +1282,13 @@ const certificateOptions = [
           previousQualificationId ||
         null,
         uploadedDocuments,
+        applicationId,
         requestId: newApplication.id,
-        status: "submitted",
+        status:
+          submissionResult?.status ||
+          "Submitted",
         submittedAt:
+          submissionResult?.submittedAt ||
           new Date().toISOString(),
       })
     );
@@ -917,10 +1333,23 @@ const certificateOptions = [
           <h1>{t("newApplication.title")}</h1>
           <p>{t("newApplication.description")}</p>
         </div>
-        <Button variant="secondary" icon={<Icon name="save" size={18} />} onClick={saveDraft}>{t("newApplication.saveDraft")}</Button>
+        <Button variant="secondary" icon={<Icon name="save" size={18} />} onClick={() => saveDraft()}>{t("newApplication.saveDraft")}</Button>
       </header>
 
-      {saved && <div className="application-flow__saved" role="status">{t("newApplication.draftSaved")}</div>}
+      {saved && (
+        <div className="application-flow__saved" role="status">
+          {t("newApplication.draftSaved")}
+        </div>
+      )}
+
+      {apiError && (
+        <div className="application-flow__notice" role="alert">
+          <strong>
+            {language === "ar" ? "تعذر إكمال العملية" : "Unable to complete the operation"}
+          </strong>
+          <span>{apiError}</span>
+        </div>
+      )}
 
       <nav className="application-stepper" aria-label={language === "ar" ? "مراحل الطلب" : "Application steps"}>
         {STEPS.map((key, index) => (
@@ -1555,9 +1984,10 @@ const certificateOptions = [
                   ...current,
                   country: nextCountry,
                   institution: "",
+                  specialization: "",
                 }));
               }}
-              options={countryOptions}
+              options={applicationCountryOptions}
               placeholder={
                 language === "ar"
                   ? "اختر الدولة"
@@ -1586,7 +2016,7 @@ onChange={(event) => {
                   specialization: "",
                 }));
               }}
-              options={filteredInstitutionOptions}
+              options={applicationInstitutionOptions}
               disabled={!form.country}
               placeholder={
                 language === "ar"
@@ -1630,7 +2060,7 @@ onChange={(event) => {
                       event.target.value,
                   }));
                 }}
-                options={secondaryBranchOptions}
+                options={applicationMajorOptions}
                 placeholder={
                   language === "ar"
                     ? "اختر فرع الثانوية"
@@ -1649,7 +2079,7 @@ onChange={(event) => {
                 }
                 value={form.specialization}
                 onChange={update("specialization")}
-options={filteredSpecializationOptions}
+options={applicationMajorOptions}
                 disabled={!form.institution}
                 placeholder={
                   language === "ar"
@@ -1705,22 +2135,142 @@ options={filteredSpecializationOptions}
       {step === 3 && (
         <>
           <div className="application-flow__notice">
-            <strong>{language === "ar" ? "قائمة الوثائق تعتمد على نوع المؤهل." : "The document list depends on the qualification type."}</strong>
-            <span>{language === "ar" ? "لا تظهر وثائق ثابتة لكل الطلبات؛ يتم تحديد المتطلبات حسب الطلب والحالة." : "Requirements are determined by the request and case rather than using one fixed list for every application."}</span>
+            <strong>
+              {language === "ar"
+                ? "الوثائق المطلوبة من الباك إند"
+                : "Documents required by the backend"}
+            </strong>
+            <span>
+              {language === "ar"
+                ? "ارفع جميع الوثائق الإلزامية قبل الانتقال للخطوة التالية."
+                : "Upload all required documents before continuing."}
+            </span>
           </div>
-          <DocumentRequirementsList
-            qualificationType={form.qualificationType}
-            country={form.country}
-            caseData={{
-              hasInternationalExam:
-                form.hasInternationalExam,
-            }}
-            uploadedDocuments={uploadedDocuments}
-            onUpload={requestUpload}
-/>
-          <input ref={fileInputRef} type="file" hidden accept="application/pdf,.pdf" onChange={handleFile} />
+
+          <section className="document-requirements">
+            <header className="document-requirements__header">
+              <div>
+                <h2>
+                  {language === "ar"
+                    ? "الوثائق المطلوبة"
+                    : "Required Documents"}
+                </h2>
+              </div>
+
+              <strong>
+                {uploadedBackendDocumentTypes.size}/
+                {requiredBackendDocumentTypes.length}
+              </strong>
+            </header>
+
+            <div className="document-requirements__list">
+              {backendRequiredDocuments.map((requirement) => {
+                const documentType =
+                  Number(requirement.documentType);
+
+                const uploaded =
+                  uploadedBackendDocumentTypes.has(
+                    documentType
+                  );
+
+                return (
+                  <article
+                    key={documentType}
+                    className={`document-requirement ${
+                      uploaded
+                        ? "document-requirement--uploaded"
+                        : "document-requirement--missing"
+                    }`}
+                  >
+                    <div
+                      className="document-requirement__icon"
+                      aria-hidden="true"
+                    >
+                      {uploaded ? "✓" : "○"}
+                    </div>
+
+                    <div className="document-requirement__content">
+                      <h3>
+                        {language === "ar"
+                          ? backendDocumentLabelsAr[
+                              documentType
+                            ] || requirement.name
+                          : requirement.name}
+                      </h3>
+
+                      <span>
+                        {requirement.required !== false
+                          ? language === "ar"
+                            ? "إلزامية"
+                            : "Required"
+                          : language === "ar"
+                            ? "اختيارية"
+                            : "Optional"}
+                      </span>
+                    </div>
+
+                    <div className="document-requirement__actions">
+                      <span className="document-requirement__status">
+                        {uploaded
+                          ? language === "ar"
+                            ? "مرفوعة"
+                            : "Uploaded"
+                          : language === "ar"
+                            ? "غير مرفوعة"
+                            : "Missing"}
+                      </span>
+
+                      {!uploaded && (
+                        <button
+                          type="button"
+                          className="document-requirement__upload"
+                          disabled={apiLoading}
+                          onClick={() =>
+                            requestUpload(requirement)
+                          }
+                        >
+                          {language === "ar"
+                            ? "رفع"
+                            : "Upload"}
+                        </button>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+
+            {missingBackendDocuments.length > 0 && (
+              <p className="document-requirements__warning">
+                {language === "ar"
+                  ? `تبقى ${missingBackendDocuments.length} وثيقة إلزامية غير مرفوعة.`
+                  : `${missingBackendDocuments.length} required document(s) are still missing.`}
+              </p>
+            )}
+          </section>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            hidden
+            accept=".jpg,.jpeg,.png,.pdf"
+            onChange={handleFile}
+          />
+
           <div className="application-flow__validation">
-            <Badge tone={validation.valid ? "success" : "warning"}>{validation.valid ? t("newApplication.documentsComplete") : `${validation.missing.length} ${t("newApplication.documentsMissing")}`}</Badge>
+            <Badge
+              tone={
+                backendDocumentsValid
+                  ? "success"
+                  : "warning"
+              }
+            >
+              {backendDocumentsValid
+                ? t("newApplication.documentsComplete")
+                : `${missingBackendDocuments.length} ${t(
+                    "newApplication.documentsMissing"
+                  )}`}
+            </Badge>
           </div>
         </>
       )}
@@ -1756,7 +2306,7 @@ options={filteredSpecializationOptions}
                 </div>
               )}
               <div><span>{language === "ar" ? "سنة التخرج" : "Graduation year"}</span><strong>{form.graduationYear || "—"}</strong></div>
-              <div><span>{language === "ar" ? "الوثائق" : "Documents"}</span><strong>{validation.uploadedCount}/{validation.requiredCount}</strong></div>
+              <div><span>{language === "ar" ? "الوثائق" : "Documents"}</span><strong>{uploadedBackendDocumentTypes.size}/{requiredBackendDocumentTypes.length}</strong></div>
             </div>
             <div className="application-flow__notice">
               <strong>{language === "ar" ? "هذه المسودة للمراجعة فقط." : "This draft is for review only."}</strong>
@@ -1768,6 +2318,21 @@ options={filteredSpecializationOptions}
 
       {step === 5 && (
         <Card title={language === "ar" ? "مراجعة وتقديم الطلب" : "Review and submit"}>
+          {applicationReview && (
+            <div className="application-flow__notice">
+              <strong>
+                {language === "ar"
+                  ? `رقم الطلب: ${applicationReview.applicationId}`
+                  : `Application ID: ${applicationReview.applicationId}`}
+              </strong>
+              <span>
+                {language === "ar"
+                  ? `الحالة: ${applicationReview.status}`
+                  : `Status: ${applicationReview.status}`}
+              </span>
+            </div>
+          )}
+
           <div className="application-review-list">
             <div>
               <span>
@@ -1830,9 +2395,9 @@ options={filteredSpecializationOptions}
         : "Secondary branch"}
     </span>
     <strong>
-      {secondaryBranchOptions.find(
+      {applicationMajorOptions.find(
         (option) =>
-          option.value === form.secondaryBranch
+          option.value === String(form.secondaryBranch)
       )?.label || "—"}
     </strong>
   </div>
@@ -1908,7 +2473,7 @@ options={filteredSpecializationOptions}
                   : "Required documents"}
               </span>
               <strong>
-                {validation.uploadedCount}/{validation.requiredCount}
+                {uploadedBackendDocumentTypes.size}/{requiredBackendDocumentTypes.length}
               </strong>
             </div>
           </div>
@@ -1920,13 +2485,56 @@ options={filteredSpecializationOptions}
       )}
 
       <footer className="application-flow__footer">
-        <Button variant="secondary" onClick={step === 0 ? () => navigate("/my-applications") : previous}>{step === 0 ? t("common.cancel") : t("common.previous")}</Button>
+        <Button
+          variant="secondary"
+          disabled={apiLoading}
+          onClick={
+            step === 0
+              ? () => navigate("/my-applications")
+              : previous
+          }
+        >
+          {step === 0 ? t("common.cancel") : t("common.previous")}
+        </Button>
+
         <div className="application-flow__footer-right">
-          <Button variant="ghost" onClick={saveDraft}>{t("newApplication.saveDraft")}</Button>
+          <Button
+            variant="ghost"
+            disabled={apiLoading}
+            onClick={() => saveDraft()}
+          >
+            {t("newApplication.saveDraft")}
+          </Button>
+
           {step < STEPS.length - 1 ? (
-            <Button onClick={next} disabled={!validateStep()}>{t("common.next")}</Button>
+            <Button
+              onClick={next}
+              disabled={
+                apiLoading ||
+                !validateStep()
+              }
+            >
+              {apiLoading
+                ? language === "ar"
+                  ? "جارٍ الحفظ..."
+                  : "Saving..."
+                : t("common.next")}
+            </Button>
           ) : (
-            <Button onClick={submit} disabled={!validateStep()} icon={<Icon name="check" size={18} />}>{t("newApplication.submitApplication")}</Button>
+            <Button
+              onClick={submit}
+              disabled={
+                apiLoading ||
+                !validateStep()
+              }
+              icon={<Icon name="check" size={18} />}
+            >
+              {apiLoading
+                ? language === "ar"
+                  ? "جارٍ التقديم..."
+                  : "Submitting..."
+                : t("newApplication.submitApplication")}
+            </Button>
           )}
         </div>
       </footer>
